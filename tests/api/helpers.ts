@@ -84,10 +84,12 @@ const TEST_ACCOUNT_IDS = [
  * actor written by someone else in those minutes would be removed too,
  * which is one more reason to run the tests on a separate project.
  */
-export async function removeTestEvents(since: string = RUN_STARTED) {
+export async function removeTestEvents(since: string = RUN_STARTED, createdAccountIds: readonly string[] = []) {
+  // Accounts a test created (and may already have deleted) count as test accounts too.
+  const testIds = [...TEST_ACCOUNT_IDS, ...createdAccountIds];
   for (;;) {
     const { rows } = await tablesDB.listRows({ databaseId: "dfrmms", tableId: "security_events", queries: [Query.greaterThan("createdAt", since), Query.limit(100)] });
-    const mine = rows.filter((e) => !e.actorId || TEST_ACCOUNT_IDS.includes(e.actorId) || String(e.actorId) === String(e.subjectId));
+    const mine = rows.filter((e) => !e.actorId || testIds.includes(e.actorId));
     for (const e of mine) await tablesDB.deleteRow({ databaseId: "dfrmms", tableId: "security_events", rowId: e.$id }).catch(() => {});
     if (rows.length < 100 || mine.length === 0) return;
   }

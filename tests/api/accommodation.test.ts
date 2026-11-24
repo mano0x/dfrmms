@@ -461,4 +461,4 @@ describe("creating a resident with a room", () => {
   });
 });
 // The requests above also wrote entries to the security event log; those are test data too.
-afterAll(() => removeTestEvents(RUN_STARTED));
+afterAll(() => removeTestEvents(RUN_STARTED, createdUserIds));
