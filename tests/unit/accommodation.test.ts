@@ -241,3 +241,25 @@ describe("what an administrator is shown", () => {
     expect(view).toMatchObject({ number: "204", roomTypeName: "Double", capacity: 2, occupiedToday: 1, upcoming: 1 });
   });
 });
+
+describe("limits and locks", () => {
+  it("SEC-13: refuses a creation once the hourly limit of that kind is reached", async () => {
+    const { CREATION_LIMITS, overCreationLimit } = await import("../../lib/accommodation");
+    expect(overCreationLimit("rooms", CREATION_LIMITS.rooms - 1)).toBe(false);
+    expect(overCreationLimit("rooms", CREATION_LIMITS.rooms)).toBe(true);
+    expect(overCreationLimit("dormitories", 0)).toBe(false);
+    expect(overCreationLimit("allocations", CREATION_LIMITS.allocations + 5)).toBe(true);
+  });
+  it("FR-24.6: a lock may be taken over only when it is older than the stale time", async () => {
+    const { STALE_LOCK_MS, lockIsStale } = await import("../../lib/accommodation");
+    const now = new Date("2026-11-24T10:00:00.000Z");
+    expect(lockIsStale(new Date(now.getTime() - 1000), now)).toBe(false);
+    expect(lockIsStale(new Date(now.getTime() - STALE_LOCK_MS), now)).toBe(false);
+    expect(lockIsStale(new Date(now.getTime() - STALE_LOCK_MS - 1).toISOString(), now)).toBe(true);
+  });
+  it("FR-24.1: names that differ only in case or spacing are the same name", async () => {
+    const { sameName } = await import("../../lib/accommodation");
+    expect(sameName("Dormitory A", " dormitory a ")).toBe(true);
+    expect(sameName("Dormitory A", "Dormitory B")).toBe(false);
+  });
+});

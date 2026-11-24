@@ -19,6 +19,7 @@ import {
   type NoticeView, type StoredNotice, type Viewer,
 } from "../neighbour";
 import { getProfile } from "./profiles";
+import { currentDormitoryId, residenceFor, withDormitoryNames } from "./accommodation";
 import { HttpError } from "./http";
 import { inTransaction } from "./transaction";
 import { administratorIds, notify, type NewNotification } from "./notifications";
@@ -52,6 +53,7 @@ const toNotice = (row: any): StoredNotice => ({
   subject: row.subject,
   description: row.description,
   dormitory: row.dormitory,
+  dormitoryId: row.dormitoryId ?? null,
   area: row.area ?? null,
   status: row.status,
   published: row.published === true,
@@ -74,10 +76,13 @@ const toAction = (row: any): ModerationDTO => ({
   timestamp: row.timestamp,
 });
 
-/** The caller with the dormitory from their profile. The dormitory is never taken from the request. */
+/**
+ * The caller with the dormitory they live in today, worked out from their
+ * allocations. It is never taken from the request or from text on the profile.
+ */
 async function viewerFor(actor: Actor): Promise<Viewer> {
   if (actor.role !== "student") return actor;
-  return { ...actor, dormitory: (await getProfile(actor.id))?.dormitory ?? null };
+  return { ...actor, dormitoryId: await currentDormitoryId(actor.id) };
 }
 
 function requireAdmin(actor: Actor) {
@@ -86,7 +91,8 @@ function requireAdmin(actor: Actor) {
 
 async function getNotice(noticeId: string): Promise<StoredNotice> {
   try {
-    return toNotice(await adminServices().tablesDB.getRow({ ...noticeTable, rowId: noticeId }));
+    const [notice] = await withDormitoryNames([toNotice(await adminServices().tablesDB.getRow({ ...noticeTable, rowId: noticeId }))]);
+    return notice;
   } catch {
     throw new HttpError(404, "Notice not found.");
   }
@@ -110,16 +116,15 @@ export async function listNotices(actor: Actor): Promise<NoticeView[]> {
   } else if (viewer.role === "student") {
     // Both queries are narrowed in the database; the rule is applied again below.
     const own = tablesDB.listRows({ ...noticeTable, queries: [Query.equal("senderId", viewer.id), ...newest] });
-    const board = viewer.dormitory
-      ? tablesDB.listRows({ ...noticeTable, queries: [Query.equal("dormitory", viewer.dormitory), Query.equal("published", true), ...newest] })
+    const board = viewer.dormitoryId
+      ? tablesDB.listRows({ ...noticeTable, queries: [Query.equal("dormitoryId", viewer.dormitoryId), Query.equal("published", true), ...newest] })
       : Promise.resolve({ rows: [] });
     const seen = new Set<string>();
     rows = [...(await own).rows, ...(await board).rows].filter((r) => !seen.has(r.$id) && seen.add(r.$id));
   } else {
     throw new HttpError(403, "You do not have permission to do this.");
   }
-  return rows
-    .map(toNotice)
+  return (await withDormitoryNames(rows.map(toNotice)))
     .filter((n) => canViewNotice(viewer, n))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .map((n) => noticeFor(viewer, n));
@@ -141,9 +146,11 @@ export async function listModeration(actor: Actor, noticeId: string): Promise<Mo
 /* ------------------------------------------------------------------ */
 
 export async function createNotice(actor: Actor, body: unknown): Promise<NoticeView> {
-  const viewer = await viewerFor(actor);
-  if (viewer.role !== "student") throw new HttpError(403, "You do not have permission to do this.");
-  if (!canSubmitNotice(viewer)) throw new HttpError(400, "Your profile has no dormitory, so a notice cannot be sent. Contact an administrator.");
+  if (actor.role !== "student") throw new HttpError(403, "You do not have permission to do this.");
+  // Where the sender lives comes from their allocation, never from the request.
+  const residence = await residenceFor(actor.id);
+  const viewer: Viewer = { ...actor, dormitoryId: residence?.dormitoryId ?? null };
+  if (!residence || !canSubmitNotice(viewer)) throw new HttpError(403, "You have no room in a dormitory at the moment, so a notice cannot be sent. Contact an administrator.");
 
   const parsed = noticeInputSchema.safeParse(body);
   if (!parsed.success) throw new HttpError(400, firstError(parsed));
@@ -169,7 +176,8 @@ export async function createNotice(actor: Actor, body: unknown): Promise<NoticeV
     category: parsed.data.category,
     subject: parsed.data.subject,
     description: parsed.data.description,
-    dormitory: viewer.dormitory!,
+    dormitory: residence.dormitoryName,
+    dormitoryId: residence.dormitoryId,
     area: parsed.data.area ?? null,
     status: "submitted",
     published: false,
@@ -306,11 +314,13 @@ export async function revealSender(actor: Actor, noticeId: string, body: Record<
   await inTransaction((transactionId) => logRow(transactionId, notice.id, actor, { action: "identity-viewed", reason: reason.data }, at).then(() => {}));
 
   const { users } = adminServices();
-  const [account, profile] = await Promise.all([users.get({ userId: notice.senderId }).catch(() => null), getProfile(notice.senderId)]);
+  const [account, profile, residence] = await Promise.all([
+    users.get({ userId: notice.senderId }).catch(() => null), getProfile(notice.senderId), residenceFor(notice.senderId),
+  ]);
   return {
     name: account?.name || profile?.name || "Unknown account",
     email: account?.email || profile?.email || "",
-    dormitory: profile?.dormitory ?? null,
-    roomNumber: profile?.roomNumber ?? null,
+    dormitory: residence?.dormitoryName ?? null,
+    roomNumber: residence?.roomNumber ?? null,
   };
 }

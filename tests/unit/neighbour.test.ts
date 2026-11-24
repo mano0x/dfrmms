@@ -7,13 +7,13 @@ import {
 
 const admin: Viewer = { id: "a1", name: "Asta", role: "admin" };
 const tomas: Viewer = { id: "t1", name: "Tomas", role: "technician" };
-const jonas: Viewer = { id: "s1", name: "Jonas", role: "student", dormitory: "Dormitory A" };
-const ieva: Viewer = { id: "s2", name: "Ieva", role: "student", dormitory: "Dormitory A" };
-const marta: Viewer = { id: "s3", name: "Marta", role: "student", dormitory: "Dormitory B" };
+const jonas: Viewer = { id: "s1", name: "Jonas", role: "student", dormitoryId: "dorm-a" };
+const ieva: Viewer = { id: "s2", name: "Ieva", role: "student", dormitoryId: "dorm-a" };
+const marta: Viewer = { id: "s3", name: "Marta", role: "student", dormitoryId: "dorm-b" };
 
 const notice = (over: Partial<StoredNotice> = {}): StoredNotice => ({
   id: "n1", senderId: "s1", category: "noise", subject: "Loud music at night",
-  description: "Music is played loudly in the corridor after midnight.", dormitory: "Dormitory A", area: "corridor",
+  description: "Music is played loudly in the corridor after midnight.", dormitory: "Dormitory A", dormitoryId: "dorm-a", area: "corridor",
   status: "submitted", published: false, removed: false, removedReason: null, adminResponse: null,
   createdAt: "2026-11-17T21:14:09.000Z", updatedAt: "2026-11-17T21:14:09.000Z", ...over,
 });
@@ -90,7 +90,7 @@ describe("status changes", () => {
 describe("who may do what", () => {
   it("lets only residents with a dormitory submit", () => {
     expect(canSubmitNotice(jonas)).toBe(true);
-    expect(canSubmitNotice({ ...jonas, dormitory: null })).toBe(false);
+    expect(canSubmitNotice({ ...jonas, dormitoryId: null })).toBe(false);
     expect(canSubmitNotice(tomas)).toBe(false);
     expect(canSubmitNotice(admin)).toBe(false);
   });
@@ -113,7 +113,15 @@ describe("who may do what", () => {
   it("shows a published notice to residents of the same dormitory only", () => {
     expect(canViewNotice(ieva, notice({ published: true }))).toBe(true);
     expect(canViewNotice(marta, notice({ published: true }))).toBe(false);
-    expect(canViewNotice({ ...ieva, dormitory: null }, notice({ published: true }))).toBe(false);
+    expect(canViewNotice({ ...ieva, dormitoryId: null }, notice({ published: true }))).toBe(false);
+  });
+  it("FR-24.7: decides by the dormitory ID, never by the dormitory name", () => {
+    // Same name, another ID: not shown. Another name, same ID: shown.
+    expect(canViewNotice(marta, notice({ published: true, dormitory: "Dormitory B" }))).toBe(false);
+    expect(canViewNotice(ieva, notice({ published: true, dormitory: "Renamed house" }))).toBe(true);
+    // A row the migration has not reached has no ID and is on nobody's board.
+    expect(canViewNotice(ieva, notice({ published: true, dormitoryId: null }))).toBe(false);
+    expect(canViewNotice({ ...ieva, dormitoryId: null }, notice({ published: true, dormitoryId: null }))).toBe(false);
   });
   it("hides a removed notice from other residents even if it was published", () => {
     expect(canViewNotice(ieva, notice({ published: true, removed: true }))).toBe(false);

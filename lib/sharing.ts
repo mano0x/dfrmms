@@ -130,7 +130,10 @@ export type StoredListing = {
   condition: string;
   location: string;
   collectionTime: string | null;
+  /** The dormitory's name when the item was published: a record for display. Never used to decide who may see it. */
   dormitory: string;
+  /** The dormitory the item is offered in. Null only on a row that the data migration has not reached yet. */
+  dormitoryId: string | null;
   photoIds: string[];
   status: string;
   removedBy: string | null;
@@ -173,14 +176,18 @@ export const needsExpiryWarning = (listing: StoredListing, now: Date = new Date(
 /* Who may do what                                                     */
 /* ------------------------------------------------------------------ */
 
-export type Viewer = Actor & { dormitory?: string | null };
+/**
+ * The viewer: who they are and, for a resident, the ID of the dormitory they
+ * live in today (worked out by the server from their allocations).
+ */
+export type Viewer = Actor & { dormitoryId?: string | null };
 
 const isOwner = (viewer: Viewer, listing: StoredListing) => viewer.role === "student" && listing.ownerId === viewer.id;
 const isReserver = (viewer: Viewer, listing: StoredListing, now: Date) =>
   viewer.role === "student" && listing.reservedById === viewer.id && (currentStatus(listing, now) === "reserved" || listing.status === "collected");
 
-/** Only residents with a dormitory on their profile take part. */
-export const canPublishItem = (viewer: Viewer): boolean => viewer.role === "student" && !!viewer.dormitory;
+/** Only residents who have a room today take part. */
+export const canPublishItem = (viewer: Viewer): boolean => viewer.role === "student" && !!viewer.dormitoryId;
 
 /**
  * Administrators see every listing. A resident sees their own listings, the
@@ -192,7 +199,7 @@ export function canViewListing(viewer: Viewer, listing: StoredListing, now: Date
   if (viewer.role !== "student") return false;
   if (isOwner(viewer, listing) || isReserver(viewer, listing, now)) return true;
   const status = currentStatus(listing, now);
-  return (status === "available" || status === "reserved") && !!viewer.dormitory && viewer.dormitory === listing.dormitory;
+  return (status === "available" || status === "reserved") && !!viewer.dormitoryId && viewer.dormitoryId === listing.dormitoryId;
 }
 
 /** The owner may change a listing only while nobody has reserved or collected it. */
@@ -214,7 +221,8 @@ export function canWithdrawListing(viewer: Viewer, listing: StoredListing): bool
 export function reservationProblem(viewer: Viewer, listing: StoredListing, activeReservations: number, now: Date = new Date()): string | null {
   if (viewer.role !== "student") return "Only residents can reserve items.";
   if (listing.ownerId === viewer.id) return "You cannot reserve your own item.";
-  if (!viewer.dormitory || viewer.dormitory !== listing.dormitory) return "This item is offered in another dormitory.";
+  if (!viewer.dormitoryId) return "You need a room in a dormitory to reserve items.";
+  if (viewer.dormitoryId !== listing.dormitoryId) return "This item is offered in another dormitory.";
   const status = currentStatus(listing, now);
   if (status === "reserved") return "This item is already reserved.";
   if (status !== "available") return "This item is no longer available.";
@@ -237,7 +245,7 @@ export const canRemoveListing = (actor: Actor, listing: StoredListing): boolean 
 
 /** A resident may report someone else's listing that they can see. */
 export const canReportListing = (viewer: Viewer, listing: StoredListing, now: Date = new Date()): boolean =>
-  viewer.role === "student" && !isOwner(viewer, listing) && canViewListing(viewer, listing, now);
+  viewer.role === "student" && !!viewer.dormitoryId && !isOwner(viewer, listing) && canViewListing(viewer, listing, now);
 
 /* ------------------------------------------------------------------ */
 /* What each viewer is shown                                           */

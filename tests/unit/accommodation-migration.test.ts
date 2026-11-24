@@ -157,10 +157,12 @@ describe("running the migration again", () => {
     expect(plan.createAllocations).toEqual([]);
     expect(plan.warnings.join(" ")).toMatch(/NOT made/);
   });
-  it("FR-24.10: an allocation that has ended does not count as a place", () => {
+  it("FR-24.10: a resident whose allocation has ended is not given a new one from the old text", () => {
     const after = applyPlan(before, planReferenceMigration(before));
     const moved = { ...after, allocations: after.allocations.map((a) => (a.residentId === "s1" ? { ...a, status: "ended", endDate: "2026-11-20" } : a)) };
-    expect(planReferenceMigration(moved).createAllocations.map((a) => a.residentId)).toEqual(["s1"]);
+    expect(planReferenceMigration(moved).createAllocations).toEqual([]);
+    const cancelled = { ...after, allocations: after.allocations.map((a) => (a.residentId === "s2" ? { ...a, status: "cancelled" } : a)) };
+    expect(planReferenceMigration(cancelled).createAllocations).toEqual([]);
   });
 });
 

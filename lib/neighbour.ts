@@ -132,7 +132,10 @@ export type StoredNotice = {
   category: string;
   subject: string;
   description: string;
+  /** The dormitory's name when the notice was sent: a record for display. Never used to decide who may see it. */
   dormitory: string;
+  /** The dormitory the notice belongs to. Null only on a row that the data migration has not reached yet. */
+  dormitoryId: string | null;
   area: string | null;
   status: string;
   published: boolean;
@@ -143,11 +146,15 @@ export type StoredNotice = {
   updatedAt: string;
 };
 
-/** The viewer: who they are and, for a resident, which dormitory they live in. */
-export type Viewer = Actor & { dormitory?: string | null };
+/**
+ * The viewer: who they are and, for a resident, the ID of the dormitory they
+ * live in today. The server works that out from the resident's allocations;
+ * a resident without a current allocation has none.
+ */
+export type Viewer = Actor & { dormitoryId?: string | null };
 
-/** Only residents send notices, and only residents with a dormitory on their profile. */
-export const canSubmitNotice = (viewer: Viewer): boolean => viewer.role === "student" && !!viewer.dormitory;
+/** Only residents send notices, and only residents who have a room today. */
+export const canSubmitNotice = (viewer: Viewer): boolean => viewer.role === "student" && !!viewer.dormitoryId;
 
 export const canModerateNotices = (actor: Actor): boolean => actor.role === "admin";
 
@@ -165,13 +172,14 @@ export function canViewNotice(viewer: Viewer, notice: StoredNotice): boolean {
   if (viewer.role === "admin") return true;
   if (viewer.role !== "student") return false;
   if (isSender(viewer, notice)) return true;
-  return isOnBoard(notice) && !!viewer.dormitory && viewer.dormitory === notice.dormitory;
+  return isOnBoard(notice) && !!viewer.dormitoryId && viewer.dormitoryId === notice.dormitoryId;
 }
 
 /** A removed notice cannot be published again; a published notice cannot be published twice. */
-export const canPublishNotice = (notice: StoredNotice): boolean => !notice.removed && !notice.published;
-export const canUnpublishNotice = (notice: StoredNotice): boolean => notice.published;
-export const canRemoveNotice = (notice: StoredNotice): boolean => !notice.removed;
+type Shown = Pick<StoredNotice, "published" | "removed">;
+export const canPublishNotice = (notice: Shown): boolean => !notice.removed && !notice.published;
+export const canUnpublishNotice = (notice: Shown): boolean => notice.published;
+export const canRemoveNotice = (notice: Shown): boolean => !notice.removed;
 
 /* ------------------------------------------------------------------ */
 /* What each viewer is shown                                           */

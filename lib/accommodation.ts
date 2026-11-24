@@ -288,3 +288,42 @@ export function roomView(room: Room, roomTypeName: string, roomAllocations: read
     upcoming: roomAllocations.filter((a) => allocationState(a, on) === "upcoming").length,
   };
 }
+
+/** An allocation as sent to an administrator's page, with the names resolved. */
+export type AllocationView = Period & {
+  id: string;
+  residentId: string;
+  residentName: string;
+  roomId: string;
+  roomNumber: string;
+  dormitoryId: string;
+  dormitoryName: string;
+  state: AllocationState;
+};
+
+/** A resident's own allocation, as sent to that resident: no account IDs. */
+export type OwnAllocationView = Period & { id: string; roomNumber: string; dormitoryName: string; state: AllocationState };
+
+/* ------------------------------------------------------------------ */
+/* Limits and locks                                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * How many rows of each kind may be created in one hour, by all
+ * administrators together. The numbers are far above normal use and exist
+ * to stop a runaway script or a stolen administrator session.
+ */
+export const CREATION_LIMITS = { dormitories: 20, roomTypes: 20, rooms: 300, allocations: 300 } as const;
+export type CreationKind = keyof typeof CREATION_LIMITS;
+export const CREATION_WINDOW_MS = 60 * 60 * 1000;
+
+export const overCreationLimit = (kind: CreationKind, createdInWindow: number): boolean => createdInWindow >= CREATION_LIMITS[kind];
+
+/** A lock older than this was left behind by a request that failed half-way and may be taken over. */
+export const STALE_LOCK_MS = 30 * 1000;
+
+export const lockIsStale = (createdAt: string | Date, now: Date = new Date()): boolean =>
+  now.getTime() - new Date(createdAt).getTime() > STALE_LOCK_MS;
+
+/** Two names are the same dormitory or room type when they differ only in case or surrounding spaces. */
+export const sameName = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase();

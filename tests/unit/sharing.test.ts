@@ -11,15 +11,15 @@ const hours = (h: number) => new Date(now.getTime() + h * 3600_000).toISOString(
 
 const admin: Viewer = { id: "a1", name: "Asta", role: "admin" };
 const tomas: Viewer = { id: "t1", name: "Tomas", role: "technician" };
-const owner: Viewer = { id: "s1", name: "Jonas", role: "student", dormitory: "Dormitory A" };
-const ieva: Viewer = { id: "s2", name: "Ieva", role: "student", dormitory: "Dormitory A" };
-const rokas: Viewer = { id: "s4", name: "Rokas", role: "student", dormitory: "Dormitory A" };
-const marta: Viewer = { id: "s3", name: "Marta", role: "student", dormitory: "Dormitory B" };
+const owner: Viewer = { id: "s1", name: "Jonas", role: "student", dormitoryId: "dorm-a" };
+const ieva: Viewer = { id: "s2", name: "Ieva", role: "student", dormitoryId: "dorm-a" };
+const rokas: Viewer = { id: "s4", name: "Rokas", role: "student", dormitoryId: "dorm-a" };
+const marta: Viewer = { id: "s3", name: "Marta", role: "student", dormitoryId: "dorm-b" };
 const names = new Map([["s1", "Jonas"], ["s2", "Ieva"]]);
 
 const listing = (over: Partial<StoredListing> = {}): StoredListing => ({
   id: "l1", ownerId: "s1", title: "Desk lamp", description: "A working desk lamp with a new bulb.", category: "electronics",
-  condition: "good", location: "Second floor kitchen", collectionTime: "Evenings after 18:00", dormitory: "Dormitory A",
+  condition: "good", location: "Second floor kitchen", collectionTime: "Evenings after 18:00", dormitory: "Dormitory A", dormitoryId: "dorm-a",
   photoIds: ["p1"], status: "available", removedBy: null, removedReason: null, expiresAt: null, reservedById: null,
   reservationId: null, reservationExpiresAt: null, expiryWarned: false, collectedAt: null,
   createdAt: "2026-11-16T10:00:00.000Z", updatedAt: "2026-11-16T10:00:00.000Z", ...over,
@@ -129,7 +129,18 @@ describe("who may see a listing", () => {
     expect(canViewListing(ieva, listing(), now)).toBe(true);
     expect(canViewListing(rokas, reserved(), now)).toBe(true);
     expect(canViewListing(marta, listing(), now)).toBe(false);
-    expect(canViewListing({ ...ieva, dormitory: null }, listing(), now)).toBe(false);
+    expect(canViewListing({ ...ieva, dormitoryId: null }, listing(), now)).toBe(false);
+  });
+  it("FR-24.7: decides by the dormitory ID, never by the dormitory name", () => {
+    expect(canViewListing(marta, listing({ dormitory: "Dormitory B" }), now)).toBe(false);
+    expect(canViewListing(ieva, listing({ dormitory: "Renamed house" }), now)).toBe(true);
+    expect(canViewListing(ieva, listing({ dormitoryId: null }), now)).toBe(false);
+    expect(canViewListing({ ...ieva, dormitoryId: null }, listing({ dormitoryId: null }), now)).toBe(false);
+  });
+  it("FR-24.8: a resident without a room still sees their own listing and reservation, and reserves nothing", () => {
+    expect(canViewListing({ ...owner, dormitoryId: null }, listing(), now)).toBe(true);
+    expect(canViewListing({ ...ieva, dormitoryId: null }, reserved(), now)).toBe(true);
+    expect(reservationProblem({ ...ieva, dormitoryId: null }, listing(), 0, now)).toMatch(/need a room/);
   });
   it("hides collected, removed and expired listings from other residents", () => {
     expect(canViewListing(rokas, listing({ status: "collected", reservedById: "s2" }), now)).toBe(false);
@@ -146,7 +157,7 @@ describe("who may see a listing", () => {
 describe("who may change a listing", () => {
   it("only residents with a dormitory publish", () => {
     expect(canPublishItem(owner)).toBe(true);
-    expect(canPublishItem({ ...owner, dormitory: null })).toBe(false);
+    expect(canPublishItem({ ...owner, dormitoryId: null })).toBe(false);
     expect(canPublishItem(admin)).toBe(false);
     expect(canPublishItem(tomas)).toBe(false);
   });

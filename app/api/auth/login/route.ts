@@ -5,6 +5,7 @@ import { fail, isSameOrigin, ok, readJson } from "@/lib/server/http";
 import { roleFromLabels, setSessionCookie } from "@/lib/server/session";
 import { clearAttempts, getAttemptState, recordFailedAttempt } from "@/lib/server/throttle";
 import { getProfile } from "@/lib/server/profiles";
+import { residenceFor } from "@/lib/server/accommodation";
 
 const ROLE_NAME = { student: "student", technician: "technician", admin: "administrator" } as const;
 
@@ -54,15 +55,15 @@ export async function POST(request: Request) {
 
     await clearAttempts(email);
     await setSessionCookie(secret);
-    const profile = await getProfile(user.$id);
+    const [profile, residence] = await Promise.all([getProfile(user.$id), role === "student" ? residenceFor(user.$id) : null]);
     return ok({
       user: {
         uid: user.$id,
         email: user.email,
         name: user.name || profile?.name || user.email,
         role,
-        dormitory: profile?.dormitory ?? null,
-        roomNumber: profile?.roomNumber ?? null,
+        dormitory: residence?.dormitoryName ?? null,
+        roomNumber: residence?.roomNumber ?? null,
         specialization: profile?.specialization ?? null,
       },
     });

@@ -148,7 +148,10 @@ export function planReferenceMigration(input: MigrationInput): MigrationPlan {
   }
 
   /* ---- Allocations: one for each resident who has none ---- */
-  const placed = new Set(input.allocations.filter((a) => holdsPlace(a, input.today)).map((a) => a.residentId));
+  // A resident who has ever had an allocation is left alone, also when it has
+  // ended or was cancelled: from then on the allocations are the record, and
+  // the old text on the profile must not bring a place back.
+  const placed = new Set(input.allocations.map((a) => a.residentId));
   const newByRoom = new Map<string, number>();
   for (const [k, residents] of residentsByRoom) {
     const dormitoryId = k.slice(0, k.indexOf("|"));

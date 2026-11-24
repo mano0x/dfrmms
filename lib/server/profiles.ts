@@ -1,4 +1,10 @@
-/** User profile rows (name, role and role-specific details). Server only. */
+/**
+ * User profile rows (name, role and role-specific details). Server only.
+ *
+ * The table still has the old text columns for the dormitory and the room.
+ * They are not read here on purpose: where a resident lives comes from
+ * their allocations (lib/server/accommodation.ts).
+ */
 import { adminServices } from "../appwrite/server";
 import { DATABASE_ID, TABLES } from "../appwrite/config";
 import type { Role } from "../maintenance";
@@ -8,8 +14,6 @@ export type Profile = {
   name: string;
   email: string;
   role: Role;
-  dormitory: string | null;
-  roomNumber: string | null;
   specialization: string | null;
   createdAt: string | null;
 };
@@ -21,8 +25,6 @@ export function toProfile(row: any): Profile {
     name: row.name,
     email: row.email,
     role: row.role,
-    dormitory: row.dormitory ?? null,
-    roomNumber: row.roomNumber ?? null,
     specialization: row.specialization ?? null,
     createdAt: row.createdAt ?? null,
   };

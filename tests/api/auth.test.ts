@@ -155,6 +155,7 @@ describe("user management is for administrators only", () => {
     email: `dfrmms.test.created-${suffix}@example.com`,
     password: "Created-By-Test-1",
     role: "student",
+    // Free text for the dormitory and room is no longer accepted (FR-24): it is sent here to show it is ignored.
     dormitory: "Dormitory C",
     roomNumber: "310",
     ...over,
@@ -192,7 +193,11 @@ describe("user management is for administrators only", () => {
     const created = await call("/api/users", { method: "POST", cookie: s.cookie, body });
     expect(created.status).toBe(201);
     createdUserIds.push(created.data.user.id);
-    expect(created.data.user).toMatchObject({ email: body.email, role: "student", dormitory: "Dormitory C", roomNumber: "310", specialization: null });
+    expect(created.data.user).toMatchObject({ email: body.email, role: "student", dormitory: null, roomNumber: null, specialization: null });
+    // No room was chosen, so nothing was stored as the resident's place.
+    const stored = await tablesDB.getRow({ databaseId: "dfrmms", tableId: "users", rowId: created.data.user.id });
+    expect(stored.dormitory ?? null).toBeNull();
+    expect(stored.roomNumber ?? null).toBeNull();
     expect(JSON.stringify(created.data)).not.toContain(body.password);
 
     const account = await users.get({ userId: created.data.user.id });

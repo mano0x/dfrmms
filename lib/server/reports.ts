@@ -17,6 +17,7 @@ import {
 } from "../maintenance";
 import { photoBelongsTo } from "../image-rules";
 import { getProfile } from "./profiles";
+import { residenceFor } from "./accommodation";
 import { currentNames } from "./names";
 import { withCurrentNames } from "../names";
 import { HttpError } from "./http";
@@ -214,7 +215,9 @@ export async function createReport(actor: Actor, body: unknown): Promise<ReportD
   if (photoFileId) await claimPhoto(actor, photoFileId);
 
   // Who and where come from the server's own records, never from the request.
-  const profile = await getProfile(actor.id);
+  // A resident without a room today reads their earlier reports but submits none.
+  const [profile, residence] = await Promise.all([getProfile(actor.id), residenceFor(actor.id)]);
+  if (!residence) throw new HttpError(403, "You have no room in a dormitory at the moment, so a report cannot be submitted. Contact an administrator.");
   const now = new Date().toISOString();
   const id = ID.unique();
   const data = {
@@ -227,8 +230,11 @@ export async function createReport(actor: Actor, body: unknown): Promise<ReportD
     // The account's own name (actor.name) is the current one; the profile
     // row's copy is only a fallback.
     studentName: actor.name || profile?.name || "",
-    dormitory: profile?.dormitory || "Unknown",
-    roomNumber: profile?.roomNumber || "Unknown",
+    // The names are kept as text: the record of where the fault was. The IDs go beside them.
+    dormitory: residence.dormitoryName,
+    roomNumber: residence.roomNumber,
+    dormitoryId: residence.dormitoryId,
+    roomId: residence.roomId,
     assignedTo: null,
     assignedToId: null,
     createdAt: now,
