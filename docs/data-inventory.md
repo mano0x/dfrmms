@@ -61,6 +61,8 @@ All data in the project is made up, except as listed here.
 | `dormitories`, `room_types`, `rooms` | None | Reference data | Administrators |
 | `allocations` | Resident's account ID, room, first and last day; ID of the administrator who created or ended it | Who lives where | Administrators; the resident sees their own, without IDs |
 | `allocation_locks` | Administrator's account ID for a few seconds | Prevents double allocation | Server only. Normally empty. |
+| `security_events` | Account ID of who did something and of whom it was about; the role; a short detail written by the code (and, for a lookup, the reason the administrator typed); a keyed hash of the network address, never the address | Record of events that matter for security | Administrators, with names instead of IDs and only a short mark of the hash; a person sees the entries about lookups of their own data, without the administrator's name |
+| `rate_limit_places` | None (the row ID is a hash of a limit's name and an account ID) | Lock rows for limits | Server only. Normally empty. |
 
 ## Files
 
@@ -89,5 +91,6 @@ here before they are built.
 ## Open points
 
 - Retention periods and the erasure of a departed resident: module F1.
-- A viewer for "who looked at my data": module A3 (security event log).
+- "Who looked at my data" exists since A3 for one kind of lookup (the sender of a notice); C2 and C3 add theirs.
+- The event log is never emptied; its retention period is `TO DECIDE` in F1.
 - The tester account with a real address: keep, anonymise or remove.

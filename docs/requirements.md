@@ -36,7 +36,7 @@ again against the code before work begins.
 | FR-14 | Technician changes status on assigned reports | Built | B3 changes it | The `assigned` status and the visit code change the transitions. |
 | FR-15 | Technician records resolution notes, each kept in the history | Built | | |
 | FR-16 | Technician attaches a completion photo | To build | B9 | |
-| FR-17 | Administrator searches and filters all reports, paged on the server | Partly | A3 | Search and filters run in the browser over the whole list; no paging. |
+| FR-17 | Administrator searches and filters all reports, paged on the server | Built | A3 | Since 2026-11-25; `docs/platform.md`, section 4. Before:  Search and filters run in the browser over the whole list; no paging. |
 | FR-18 | Administrator assigns or unassigns a technician | Built | | |
 | FR-19 | Administrator overrides priority with a recorded reason | Built | | |
 | FR-20 | Administrator closes, reopens or returns a report | Built | | |
@@ -47,8 +47,8 @@ again against the code before work begins.
 | FR-25 | Every report change goes to an append-only history in the same transaction | Built | | |
 | FR-26 | In-app notifications for fault events | To build | B1 | Notifications exist for notices and free items only. |
 | FR-27 | E-mail for selected events | To build | B9 | Only with a mail provider. |
-| FR-28 | Daily check of reports past their target | To build | B6 | |
-| FR-29 | Security event log | To build | A3 | |
+| FR-28 | Daily check of reports past their target | Partly | A3, B6 | The daily job and its protection exist (A3; its API tests are not run yet). The check of overdue reports itself is B6. |
+| FR-29 | Security event log | Built | A3 | `docs/platform.md`, section 2. |
 | FR-30 | Confidential neighbour notices | Built | | FR-N01 to FR-N15 in `docs/neighbour-notices.md`. |
 | FR-31 | Free-item sharing | Built | | FR-F01 to FR-F18 in `docs/free-stuff.md`. |
 | FR-32 | Privacy notice | To build | F1 | |
@@ -106,9 +106,9 @@ requirements. Until then only the prefix exists.
 | SEC-08 | Uploads checked by content, size-limited, private, served through an authorised route, metadata removed on the server | Partly | B4 | Metadata is removed only by the resize in the browser. |
 | SEC-09 | Security headers; a content policy without inline scripts | Partly | B8 | Headers are set; the policy allows inline scripts and styles. |
 | SEC-10 | Append-only histories written with the change | Built | | |
-| SEC-11 | Security events recorded and readable by administrators | To build | A3 | |
-| SEC-12 | A notice never reveals its sender; a lookup needs a reason and is logged | Built | A3 adds it to the event log | |
-| SEC-13 | Abuse limits on every create route | Partly | A3, B4 | Notices and listings have limits that are read before the write; dormitories, room types, rooms and allocations have an hourly limit shared by all administrators (unit-tested, not tested through the API); reports, photos and account creation have none. |
+| SEC-11 | Security events recorded and readable by administrators | Built | A3 | The network address is stored as a keyed hash only. |
+| SEC-12 | A notice never reveals its sender; a lookup needs a reason and is logged | Built | A3 | The lookup is also in the event log, written with the lookup itself, and the sender can read that it happened. |
+| SEC-13 | Abuse limits on every create route | Partly | A3, B4 | Notices and listings: the limit now holds under simultaneous requests (A3, API-tested); dormitories, room types, rooms and allocations have an hourly limit shared by all administrators (unit-tested, not tested through the API); reports, photos and account creation have none. |
 | SEC-14 | Generic error messages; no internal detail leaves the server | Built | | |
 | SEC-15 | Secrets only in server settings; dependency audit and secret scan in CI | Built | A1 | CI first ran on 2026-11-21; both jobs succeeded. The audit step fails on high or critical advisories only. |
 | SEC-16 | A deactivated account cannot sign in and loses its sessions; starting passwords must be changed | Partly | B7 | A disabled account is refused; there is no way to deactivate one in the application, sessions are not revoked, and no forced change exists. |
@@ -126,6 +126,6 @@ requirements. Until then only the prefix exists.
 | NFR-04 | Current Chrome, Firefox, Safari and Edge; usable at 360 px wide | Not verified | each module | Checked so far only in a Chromium browser, at 375 px. |
 | NFR-05 | A change and its history are atomic; of simultaneous reservations exactly one succeeds | Built | | |
 | NFR-06 | Rules in pure modules with unit tests; lint, type-check and tests pass in CI | Built | A1 | CI runs lint, type-check, unit tests and build on every push. The API tests are not part of CI. |
-| NFR-07 | Lists are paged and filtered on the server | To build | A3 | |
+| NFR-07 | Lists are paged and filtered on the server | Built for fault reports and the event log | A3 | Notices, free items, users and allocations are still read whole (up to 500 rows). |
 | NFR-08 | Data can be exported and restored with a documented script | To build | **no module in the brief** | See open decision O12 in the build plan. |
-| NFR-09 | Interface in English, Lithuanian as an option | Partly | A3, F3 | English only; text is inside the pages. |
+| NFR-09 | Interface in English, Lithuanian as an option | Partly | A3, F3 | English only. `lib/messages/en.ts` exists and the new pages of A3 use it; the older pages still hold their own texts. |

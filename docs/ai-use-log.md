@@ -108,3 +108,51 @@ the declaration as well.
   has ended, and whether a new resident must be given a room at creation.
 - The six migrated rooms carry a placeholder type and capacity; they must be
   checked and saved on the page before real use.
+
+## 2026-11-25: A3, shared server utilities
+
+**Module:** A3.
+
+**What the AI generated or changed**
+
+- Wrote the pure rules `lib/security-events.ts`, `lib/rate-limit.ts`,
+  `lib/paging.ts`, `lib/report-list.ts`, `lib/messages/en.ts` and the
+  server modules `lib/server/events.ts`, `lib/server/limiter.ts`,
+  `lib/server/crypto.ts`, `lib/server/jobs.ts`, with unit tests.
+- Added two tables to `scripts/appwrite-setup.mjs` and ran the setup on the
+  live project after the owner approved it (two runs: the first stopped on a
+  mistake in the AI's index definitions).
+- Added event logging to sign-in, sign-out, role and origin refusals,
+  account creation, the sender lookup, allocations, reference data and limits.
+- Put counting and writing of notices and free items under a lock, after the
+  owner decided to keep "in any 24 hours".
+- Changed `/api/reports` to filter, search and page on the server, and the
+  three report pages to use it through `lib/useReportList.ts`.
+- Wrote the routes `/api/security-events`, `/api/security-events/mine`,
+  `/api/jobs/daily`, the page `/admin/events` and a section on the
+  notifications page.
+- Wrote `scripts/add-secrets.mjs` and ran it, at the owner's request, to put
+  three generated secrets into `.env.local` without displaying them.
+- Read Vercel's documentation on cron jobs and request headers on the day the
+  daily job was written, through a helper that fetched the pages.
+- Wrote four API test files (events, limits, report list, jobs) and
+  `docs/platform.md`.
+- Corrected three weaknesses that test runs exposed: a refusal waited for its
+  log entry; the report counts failed the whole list when the connection
+  dropped; the test clean-up missed accounts that tests create.
+
+**What the author must review and verify**
+
+- The daily job's API tests have not been run. Quote test counts only from
+  the progress log of the build plan.
+- Keep a copy of the three secrets outside the project, and set them in
+  Vercel before the merge.
+- Read `recordEvent` and explain when an entry is written with the change
+  and when on its own, and what is lost in each case if the database fails.
+- Read `oneAtATime` and explain why two requests cannot both pass a limit.
+- Read `listReports` and show where a resident's list is cut down to their
+  own reports, and why a filter cannot widen it.
+- Work one encryption example by hand: which parts of the stored text are
+  the key ID, the IV, the tag and the ciphertext, and what the context does.
+- The log holds entries of the author's own accounts from the days of
+  testing; they are real and were left in place.
