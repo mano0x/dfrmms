@@ -39,11 +39,9 @@ beforeAll(async () => {
   tap = await submit(student1, `${WORD} tap drips`);
   door = await submit(student1, `${WORD} door does not close`);
   other = await submit(student2, `${WORD} radiator is cold`);
-  // One is assigned and in progress, one is resolved.
+  // One is assigned (which also moves it to "in progress"), one is assigned and then resolved.
   expect((await patch(admin, lamp, { action: "assign", technicianId: "test-tech1" })).status).toBe(200);
-  expect((await patch(tech1, lamp, { action: "status", status: "in-progress" })).status).toBe(200);
   expect((await patch(admin, tap, { action: "assign", technicianId: "test-tech1" })).status).toBe(200);
-  expect((await patch(tech1, tap, { action: "status", status: "in-progress" })).status).toBe(200);
   expect((await patch(tech1, tap, { action: "status", status: "resolved" })).status).toBe(200);
 });
 afterAll(async () => {

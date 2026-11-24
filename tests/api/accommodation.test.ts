@@ -42,7 +42,9 @@ const allocate = (residentId: string, room: string, startDate: string, endDate: 
   post("allocations", admin, { residentId, roomId: room, startDate, endDate, ...extra });
 const me = async (cookie: string) => (await call("/api/auth/me", { cookie })).data.user as { dormitory: string | null; roomNumber: string | null };
 const all = async (tableId: string, queries: string[] = []) => (await tablesDB.listRows({ databaseId: DB, tableId, queries: [...queries, Query.limit(500)] })).rows;
-const drop = (tableId: string, rowId: string) => tablesDB.deleteRow({ databaseId: DB, tableId, rowId }).catch(() => {});
+// A removal that fails on the connection is tried once more, so a dropped connection does not leave a test row behind.
+const drop = (tableId: string, rowId: string) =>
+  tablesDB.deleteRow({ databaseId: DB, tableId, rowId }).catch(() => tablesDB.deleteRow({ databaseId: DB, tableId, rowId }).catch(() => {}));
 const row = (tableId: string, rowId: string) => tablesDB.getRow({ databaseId: DB, tableId, rowId });
 const activeIn = async (room: string) => (await all("allocations", [Query.equal("roomId", room), Query.equal("status", "active")])).length;
 const accountsWithEmail = async (email: string) => (await users.list({ queries: [Query.equal("email", [email])] })).total;

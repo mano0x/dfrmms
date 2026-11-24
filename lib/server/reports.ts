@@ -166,7 +166,14 @@ function filterQueries(actor: Actor, filter: ReportFilter, now: Date): string[] 
 
 /** How many reports match, counted by the database. */
 async function count(queries: string[]): Promise<number> {
-  return (await adminServices().tablesDB.listRows({ ...reportTable, queries: [...queries, Query.limit(1)] })).total;
+  const read = async () => (await adminServices().tablesDB.listRows({ ...reportTable, queries: [...queries, Query.limit(1)] })).total;
+  try {
+    return await read();
+  } catch (err) {
+    // A failure of the connection itself (no answer from the database) is tried once more; an answer that is an error is not.
+    if (typeof (err as { code?: unknown })?.code === "number") throw err;
+    return read();
+  }
 }
 
 /** Counts over everything the caller may see, whatever filter is set. */
@@ -214,7 +221,14 @@ export async function listReports(actor: Actor, filterInput: unknown, page: Page
     if (page.cursor && (err as { code?: number })?.code === 400) throw new HttpError(400, "Invalid page reference.");
     throw err;
   }
-  const [names, summary] = await Promise.all([currentNames(), page.cursor ? null : summarise(actor, now)]);
+  // The counts are an extra: if they cannot be read, the page of reports is still returned, without them.
+  const counts = page.cursor
+    ? null
+    : summarise(actor, now).catch((err) => {
+        console.error("The report counts could not be read:", (err as { type?: string })?.type ?? "connection failure");
+        return null;
+      });
+  const [names, summary] = await Promise.all([currentNames(), counts]);
   // The rule is applied again to every row, whatever the query returned.
   const cut = toPage(rows.map(toReport).filter((r) => canViewReport(actor, r)), page.limit);
   return { reports: cut.items.map((r) => withCurrentNames(r, names)), nextCursor: cut.nextCursor, summary };
