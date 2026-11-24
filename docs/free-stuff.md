@@ -29,7 +29,7 @@ extension of the resident-facing system, not as part of fault handling.
 | ID | Requirement |
 |----|-------------|
 | FR-F01 | A resident can publish an item with title, description, category, condition, collection place, optional collection time, optional last day of the offer, and up to 3 photos. |
-| FR-F02 | The owner and dormitory of an item are taken from the signed-in account on the server, never from the request. |
+| FR-F02 | The owner of an item is the signed-in account, and its dormitory is taken on the server from the owner's current room allocation, never from the request. Since module A2 it is stored as a dormitory ID, and the ID decides who sees the item (`docs/accommodation.md`). |
 | FR-F03 | Text that asks for money ("5 EUR", "for sale", "kaina") is rejected. |
 | FR-F04 | A resident can publish at most 5 items in any 24 hours. |
 | FR-F05 | A resident can browse the items on offer or reserved in their own dormitory, with photos, and filter them by category. |
@@ -144,7 +144,8 @@ All tables have row security enabled and no permissions.
 | condition | enum, required | new, good, used |
 | location | varchar(120), required | collection place |
 | collectionTime | varchar(120) | |
-| dormitory | varchar(60), required | copied from the owner's profile |
+| dormitory | varchar(60), required | the dormitory's name when the item was published; display only |
+| dormitoryId | varchar(36) | the dormitory the item is offered in; decides who sees it (added in A2) |
 | photoIds | varchar(120) | up to 3 file IDs, comma separated |
 | status | enum, required | available, reserved, collected, removed |
 | removedBy | varchar(10) | owner or admin |

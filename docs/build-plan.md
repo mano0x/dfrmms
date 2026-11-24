@@ -2,7 +2,7 @@
 
 Plan for extending DFRMMS from fault reporting into a wider dormitory portal.
 Written 2026-11-21 from the build brief and the owner's answers. **Status:
-approved by the owner on 2026-11-21. A1 is done and approved. A2 is in progress: rules and schema definition are written; the tables exist and the existing data is migrated (2026-11-24); server operations, routes, tests and pages are next.**
+approved by the owner on 2026-11-21. A1 is done and approved. A2 is in progress: rules and schema definition are written; everything is written and the existing data is migrated (2026-11-24). Open: the first run of the module's API tests, which waits for the owner's word, and the owner's approval.**
 
 A new session without the earlier conversation starts here: read this file,
 then continue at the first unticked step. Rules that apply to every step are
@@ -138,12 +138,13 @@ Ideas from the owner are marked "idea 1" to "idea 12".
 
 - [x] Pure rules `lib/accommodation.ts` (35 unit tests) and the migration planner `lib/accommodation-migration.ts` (19 unit tests). Done 2026-11-24.
 - [x] Tables `dormitories`, `room_types`, `rooms`, `allocations`, `allocation_locks`; `dormitoryId` on reports, notices and listings, `roomId` on reports. Created 2026-11-24 with the owner's approval.
-- [ ] Server operations and admin routes; allocation under the lock-row pattern.
-- [ ] Migration scripts `reference:dry` and `reference:run` (D23), with a backup file; test accounts get rooms (D24).
-- [ ] Switch users, reports, notices and listings to IDs; names resolved at read time.
-- [ ] API tests: capacity under simultaneous allocation; dormitory isolation proven on the IDs; a resident without an allocation (D29).
-- [ ] Report to the owner: every place that still reads the old text columns; none may be a permission decision.
-- [ ] Admin pages; `docs/accommodation.md`.
+- [x] Server operations and admin routes; allocation under the lock-row pattern. Written 2026-11-24 (`lib/server/accommodation.ts`, `app/api/accommodation/**`).
+- [x] Migration scripts `reference:dry` and `reference:run` (D23), with a backup file; test accounts get rooms (D24). Run on 2026-11-24. Four test residents without a room were added for the allocation tests.
+- [x] Switch users, reports, notices and listings to IDs; names resolved at read time. Done 2026-11-24.
+- [ ] API tests: capacity under simultaneous allocation; dormitory isolation proven on the IDs; a resident without an allocation (D29). **Written (43 tests), not yet run:** the run on the live project waits for the owner's word.
+- [x] Report to the owner: every place that still reads the old text columns; none may be a permission decision. In `docs/accommodation.md`, section 8.
+- [x] Admin pages; `docs/accommodation.md`; `docs/data-inventory.md` started. Page checked in the browser at 360 px on 2026-11-24.
+- [ ] Run the migration dry run again just before the merge (D23).
 
 **A3. Shared server utilities** (FR-29, SEC-11, SEC-13, FR-17, NFR-07)
 
@@ -319,3 +320,7 @@ Nothing else is planned. Charts are inline SVG; PDF is the browser's print.
 | 2026-11-24 | A2: `npm run appwrite:setup` on `6afa1cbf000cec97cead`, approved by the owner | 53 items created (5 tables, 37 columns, 11 indexes); `appwrite:check` afterwards: 193 present, 0 missing. Read back: row counts and row data of all 11 existing tables identical before and after; no existing column changed or removed; the 5 new tables have row security on, no permissions and 0 rows; live health check fine |
 | 2026-11-24 | A2: `npm run reference:dry` on the same project | 24 changes planned (3 room types, 2 dormitories, 6 rooms, 7 allocations, 6 reports get IDs); 0 warnings; a second run would plan 0. Nothing changed. Waiting for the owner's word before `reference:run` |
 | 2026-11-24 | A2: `npm run reference:run` on the same project, approved by the owner | Backup written first to `migration-backups/` (git-ignored). 24 steps done, 0 failed: 3 room types, 2 dormitories, 6 rooms, 7 allocations created; `dormitoryId` and `roomId` filled on 6 reports. Read back: a fresh plan has 0 changes; the old fields of profiles, reports, notices and listings are unchanged. `reference:dry` straight after: 0 changes planned. Live health check fine |
+| 2026-11-24 | A2: `npm run appwrite:test-users -- --add-missing` on the same project | 4 test accounts created (`dfrmms.test.roomless1..4@example.com`, residents without a room); the 8 existing test accounts were left as they are |
+| 2026-11-24 | A2, after all code: `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build` | 194 of 194 unit tests; lint 0 errors, 5 warnings (all older); type-check passes; build passes |
+| 2026-11-24 | A2: `npm run test:api` | **Not run.** 43 new tests in `tests/api/accommodation.test.ts` are written. The run on the live project waits for the owner's word |
+| 2026-11-24 | A2: browser check of `/admin/accommodation` and the create-user form, signed in as the test administrator, read-only | All four tabs show the migrated data; no sideways scrolling at 360 px; every field has a label. No change was made through the page |

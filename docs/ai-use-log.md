@@ -66,3 +66,44 @@ the declaration as well.
   run in Frankfurt.
 - Confirm that nothing still needed was removed: the tag
   `migration-scripts-final` holds the last state with the removed files.
+
+## 2026-11-24: A2, reference data
+
+**Module:** A2.
+
+**What the AI generated or changed**
+
+- Wrote the pure rules `lib/accommodation.ts` and the migration planner
+  `lib/accommodation-migration.ts`, with their unit tests.
+- Added five tables and four columns to `scripts/appwrite-setup.mjs`; ran
+  the setup and the migration on the live project after the owner approved
+  each step, and compared the data before and after.
+- Wrote `scripts/reference-migrate.mjs`, `lib/server/accommodation.ts`, the
+  routes under `app/api/accommodation`, `lib/rooms.ts` and the page
+  `app/admin/accommodation/page.tsx`.
+- Changed `lib/neighbour.ts`, `lib/sharing.ts` and their server modules so
+  that access is decided by the dormitory ID; changed report creation, the
+  sign-in routes and the user route to take the dormitory and room from the
+  allocation.
+- Changed `scripts/appwrite-test-users.mjs` (rooms for test residents, four
+  residents without a room, an option that only adds missing accounts).
+- Wrote `tests/api/accommodation.test.ts` (43 tests) and changed one test in
+  `tests/api/auth.test.ts` and one in the migration planner's unit tests,
+  both because the behaviour changed on purpose.
+- Wrote `docs/accommodation.md` and `docs/data-inventory.md`.
+
+**What the author must review and verify**
+
+- The API tests of this module have not been run. Nothing in the thesis may
+  say they pass until a run is recorded in the build plan.
+- Read `allocationProblem` and `peakOccupancy` and work one example by
+  hand (capacity 2, three stays), then compare with the unit test.
+- Read `withLocks` and `allocate` in `lib/server/accommodation.ts` and
+  explain in your own words why two simultaneous requests cannot both get
+  the last place, and what the second count after the write is for.
+- Check the table in section 8 of `docs/accommodation.md` against a search
+  of the code for the old text columns.
+- Decide the points listed as limitations: listings of a resident whose stay
+  has ended, and whether a new resident must be given a room at creation.
+- The six migrated rooms carry a placeholder type and capacity; they must be
+  checked and saved on the page before real use.

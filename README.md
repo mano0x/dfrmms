@@ -64,11 +64,11 @@ The rules that follow from it:
 
 | Layer | Files | Rule |
 |-------|-------|------|
-| Pure rules | `lib/maintenance.ts`, `lib/access.ts`, `lib/auth-rules.ts`, `lib/neighbour.ts`, `lib/sharing.ts`, `lib/image-rules.ts`, `lib/names.ts` | Schemas, state machines, permissions, limits. No Appwrite, Next.js or React. |
+| Pure rules | `lib/maintenance.ts`, `lib/access.ts`, `lib/auth-rules.ts`, `lib/neighbour.ts`, `lib/sharing.ts`, `lib/accommodation.ts`, `lib/accommodation-migration.ts`, `lib/image-rules.ts`, `lib/names.ts` | Schemas, state machines, permissions, limits. No Appwrite, Next.js or React. |
 | Server operations | `lib/server/*.ts` | Authorise with the pure rules, validate, then write. |
 | Appwrite access | `lib/appwrite/server.ts`, IDs in `lib/appwrite/config.ts` | The only place a client for Appwrite is created. |
 | Route handlers | `app/api/**/route.ts` | Thin: `requireCaller`, `readJson`, one server operation, `ok` or `fail`, inside `handle`. |
-| Browser data layer | `lib/api.ts`, `lib/reports.ts`, `lib/community.ts`, `lib/free.ts`, `lib/AuthContext.tsx` | What pages call. |
+| Browser data layer | `lib/api.ts`, `lib/reports.ts`, `lib/community.ts`, `lib/free.ts`, `lib/rooms.ts`, `lib/AuthContext.tsx` | What pages call. |
 | Pages and components | `app/**/page.tsx`, `components/` | Black, white and grey design; shared kit in `components/ui.tsx`. |
 | Schema | `scripts/appwrite-setup.mjs` | Repeatable; only adds what is missing. |
 | Tests | `tests/unit`, `tests/api` | See "Testing". |
@@ -84,6 +84,8 @@ Appwrite account. An account without one of these labels cannot sign in.
 |-------|---------|-----|
 | `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`, `/api/auth/recovery` | POST, GET, PUT | anyone (sign-in itself), signed-in users |
 | `/api/users` | GET, POST | administrator |
+| `/api/accommodation`, `/api/accommodation/dormitories`, `/room-types`, `/rooms`, `/allocations` (each with `/[id]`) | GET, POST, PATCH | administrator |
+| `/api/accommodation/mine` | GET | resident, own allocations only |
 | `/api/reports`, `/api/reports/[id]`, `/api/reports/[id]/history` | GET, POST, PATCH | resident (own reports), technician, administrator |
 | `/api/photos`, `/api/photos/[id]` | POST, GET | resident uploads; viewers of the report read |
 | `/api/neighbour`, `/api/neighbour/[id]`, `/api/neighbour/[id]/reveal`, `/api/neighbour/[id]/actions` | GET, POST, PATCH | resident, administrator; never technician |
@@ -145,7 +147,9 @@ Both print the project ID they act on. Look at it before you run setup.
 | `npm run appwrite:check` | Compare the project with the schema | no |
 | `npm run appwrite:setup` | Create missing tables, columns, indexes, buckets | **yes** |
 | `npm run appwrite:verify` | Check the structure; writes and removes two throwaway rows | **yes**, briefly |
-| `npm run appwrite:test-users` | Create or refresh the test accounts | **yes** |
+| `npm run appwrite:test-users` | Delete and create the test accounts again; with `-- --add-missing` create only those that do not exist | **yes** |
+| `npm run reference:dry` | Print what the move from free-text dormitories and rooms to reference data would do | no |
+| `npm run reference:run` | Carry that out: backup file first, then the changes, then a read-back | **yes** |
 | `npm run key:set` | Save a new API key in `.env.local` with hidden input | no |
 | `npm run password:set -- <email>` | Set an account's password with hidden input | **yes** |
 | `npm run names:sync-dry`, `names:sync-run` | Align stored name copies with the accounts | run: **yes** |

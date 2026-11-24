@@ -40,7 +40,7 @@ reason, and that each lookup is logged.
 | ID | Requirement |
 |----|-------------|
 | FR-N01 | A resident can send a notice with a category, an optional shared area, a subject (5-120 characters) and a description (20-1500 characters). |
-| FR-N02 | The dormitory of a notice is taken from the sender's profile on the server, never from the request. |
+| FR-N02 | The dormitory of a notice is taken on the server from the sender's current room allocation, never from the request. Since module A2 it is stored as a dormitory ID, and the ID decides who sees a published notice (`docs/accommodation.md`). |
 | FR-N03 | A notice that names a specific room (for example "room 204", "kambarys 12") is rejected. |
 | FR-N04 | A resident can send at most 3 notices in any 24 hours. |
 | FR-N05 | A resident can list their own notices with status, the administrator's response and, if removed, the reason. |
@@ -108,7 +108,8 @@ permissions.
 | category | enum, required | noise, shared-space, cleanliness, other |
 | subject | varchar(120), required | |
 | description | varchar(1500), required | |
-| dormitory | varchar(60), required | copied from the sender's profile |
+| dormitory | varchar(60), required | the dormitory's name when the notice was sent; display only |
+| dormitoryId | varchar(36) | the dormitory the notice belongs to; decides who sees it on the board (added in A2) |
 | area | enum | corridor, kitchen, bathroom, laundry, common-room, stairwell, outdoor, other |
 | status | enum, required | submitted, under-review, resolved, closed |
 | published | boolean | shown on the dormitory board |
