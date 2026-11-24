@@ -2,7 +2,7 @@
 
 Plan for extending DFRMMS from fault reporting into a wider dormitory portal.
 Written 2026-11-21 from the build brief and the owner's answers. **Status:
-approved by the owner on 2026-11-21. A1 is done and approved. A2 is in progress: rules and schema definition are written; creating the tables waits for the owner's word.**
+approved by the owner on 2026-11-21. A1 is done and approved. A2 is in progress: rules and schema definition are written; the tables exist and the existing data is migrated (2026-11-24); server operations, routes, tests and pages are next.**
 
 A new session without the earlier conversation starts here: read this file,
 then continue at the first unticked step. Rules that apply to every step are
@@ -318,3 +318,4 @@ Nothing else is planned. Charts are inline SVG; PDF is the browser's print.
 | 2026-11-24 | A2: `npm run appwrite:check` on `6afa1cbf000cec97cead` | 140 present, 17 missing (5 tables with their columns and indexes, 4 columns and 3 indexes on existing tables); nothing created |
 | 2026-11-24 | A2: `npm run appwrite:setup` on `6afa1cbf000cec97cead`, approved by the owner | 53 items created (5 tables, 37 columns, 11 indexes); `appwrite:check` afterwards: 193 present, 0 missing. Read back: row counts and row data of all 11 existing tables identical before and after; no existing column changed or removed; the 5 new tables have row security on, no permissions and 0 rows; live health check fine |
 | 2026-11-24 | A2: `npm run reference:dry` on the same project | 24 changes planned (3 room types, 2 dormitories, 6 rooms, 7 allocations, 6 reports get IDs); 0 warnings; a second run would plan 0. Nothing changed. Waiting for the owner's word before `reference:run` |
+| 2026-11-24 | A2: `npm run reference:run` on the same project, approved by the owner | Backup written first to `migration-backups/` (git-ignored). 24 steps done, 0 failed: 3 room types, 2 dormitories, 6 rooms, 7 allocations created; `dormitoryId` and `roomId` filled on 6 reports. Read back: a fresh plan has 0 changes; the old fields of profiles, reports, notices and listings are unchanged. `reference:dry` straight after: 0 changes planned. Live health check fine |
