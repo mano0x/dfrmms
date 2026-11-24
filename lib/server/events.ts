@@ -35,10 +35,14 @@ const toEvent = (row: any): StoredSecurityEvent => ({
  */
 export function addressOf(request: Request | undefined): string | null {
   if (!request) return null;
-  const direct = request.headers.get("x-real-ip")?.trim();
-  if (direct) return direct;
-  const first = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return first || null;
+  // On Vercel all three headers carry the client's public address (Vercel's documentation on request headers,
+  // read 2026-11-25). The first one is not rewritten by a proxy placed in front of Vercel, so it is preferred.
+  // Anywhere else (a local server) these headers are whatever the client sends and prove nothing.
+  for (const name of ["x-vercel-forwarded-for", "x-real-ip", "x-forwarded-for"]) {
+    const value = request.headers.get(name)?.split(",")[0]?.trim();
+    if (value) return value;
+  }
+  return null;
 }
 
 let warnedAboutKey = false;

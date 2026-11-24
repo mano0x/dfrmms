@@ -91,6 +91,8 @@ Appwrite account. An account without one of these labels cannot sign in.
 | `/api/neighbour`, `/api/neighbour/[id]`, `/api/neighbour/[id]/reveal`, `/api/neighbour/[id]/actions` | GET, POST, PATCH | resident, administrator; never technician |
 | `/api/free`, `/api/free/[id]`, `/api/free/photos`, `/api/free/photos/[id]` | GET, POST, PATCH | resident, administrator; never technician |
 | `/api/notifications` | GET, PATCH | any signed-in user, own notifications only |
+| `/api/security-events`, `/api/security-events/mine` | GET | administrator (the log); any signed-in user (entries about themself) |
+| `/api/jobs/daily` | GET | Vercel's scheduler only, with the job's secret; no session is accepted |
 | `/api/health` | GET | public; reports only whether settings are present |
 
 The exact rule for each action is in the pure module named in the route's
@@ -148,6 +150,7 @@ Both print the project ID they act on. Look at it before you run setup.
 | `npm run appwrite:setup` | Create missing tables, columns, indexes, buckets | **yes** |
 | `npm run appwrite:verify` | Check the structure; writes and removes two throwaway rows | **yes**, briefly |
 | `npm run appwrite:test-users` | Delete and create the test accounts again; with `-- --add-missing` create only those that do not exist | **yes** |
+| `npm run secrets:add` | Make the server secrets that are missing in `.env.local` and write them there without showing them | no (local file only) |
 | `npm run reference:dry` | Print what the move from free-text dormitories and rooms to reference data would do | no |
 | `npm run reference:run` | Carry that out: backup file first, then the changes, then a read-back | **yes** |
 | `npm run key:set` | Save a new API key in `.env.local` with hidden input | no |

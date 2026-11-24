@@ -319,3 +319,26 @@ describe("the list of fault reports", () => {
     }
   });
 });
+
+describe("the daily job", () => {
+  const SECRET = randomBytes(24).toString("hex");
+
+  it("SEC-04: only the exact secret with the Bearer prefix starts it", async () => {
+    const { isCronCall } = await import("../../lib/server/jobs");
+    expect(isCronCall(`Bearer ${SECRET}`, SECRET)).toBe(true);
+    for (const wrong of [null, "", SECRET, `bearer ${SECRET}`, `Bearer ${SECRET} `, `Bearer ${SECRET}x`, `Bearer ${SECRET.slice(1)}`, "Bearer undefined"]) {
+      expect(isCronCall(wrong, SECRET), String(wrong)).toBe(false);
+    }
+  });
+  it("SEC-04: without a configured secret, or with a short one, nothing starts it", async () => {
+    const { isCronCall } = await import("../../lib/server/jobs");
+    expect(isCronCall("Bearer ", "")).toBe(false);
+    expect(isCronCall("Bearer undefined", undefined)).toBe(false);
+    expect(isCronCall("Bearer short", "short")).toBe(false);
+  });
+  it("FR-28: a lock is treated as left behind only when it is ten minutes old", async () => {
+    const { LEFTOVER_LOCK_AGE_MS, leftoverBefore } = await import("../../lib/server/jobs");
+    expect(leftoverBefore(new Date("2026-11-25T10:00:00.000Z"))).toBe("2026-11-25T09:50:00.000Z");
+    expect(LEFTOVER_LOCK_AGE_MS).toBeGreaterThan(60 * 1000); // far longer than any request lasts
+  });
+});

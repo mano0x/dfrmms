@@ -23,6 +23,7 @@
     "tp:verify": "node --env-file=.env.test.local scripts/appwrite-verify.mjs",
     "tp:test-users": "node --env-file=.env.test.local scripts/appwrite-test-users.mjs",
     "tp:test-api": "node --env-file=.env.test.local node_modules/vitest/vitest.mjs run tests/api --testTimeout=60000 --no-file-parallelism --hookTimeout=120000",
+    "secrets:add": "node scripts/add-secrets.mjs",
     "key:set": "node scripts/set-api-key.mjs",
     "password:set": "node --env-file=.env.local scripts/set-password.mjs",
     "accounts:check": "node scripts/accounts-signin-check.mjs",
