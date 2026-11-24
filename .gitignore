@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Exported Firestore data (personal data, local only)
 migration-data/
+
+# Backups written by scripts before they change rows (may hold personal data; local only)
+migration-backups/

@@ -137,7 +137,7 @@ Ideas from the owner are marked "idea 1" to "idea 12".
 **A2. Reference data: dormitories, rooms, allocations** (FR-24)
 
 - [x] Pure rules `lib/accommodation.ts` (35 unit tests) and the migration planner `lib/accommodation-migration.ts` (19 unit tests). Done 2026-11-24.
-- [ ] Tables `dormitories`, `room_types`, `rooms`, `allocations`, `allocation_locks`; `dormitoryId` on reports, notices and listings, `roomId` on reports. Defined in the setup script 2026-11-24; `appwrite:check` shown to the owner; **not created yet**.
+- [x] Tables `dormitories`, `room_types`, `rooms`, `allocations`, `allocation_locks`; `dormitoryId` on reports, notices and listings, `roomId` on reports. Created 2026-11-24 with the owner's approval.
 - [ ] Server operations and admin routes; allocation under the lock-row pattern.
 - [ ] Migration scripts `reference:dry` and `reference:run` (D23), with a backup file; test accounts get rooms (D24).
 - [ ] Switch users, reports, notices and listings to IDs; names resolved at read time.
@@ -316,3 +316,5 @@ Nothing else is planned. Charts are inline SVG; PDF is the browser's print.
 | 2026-11-21 | A1 approved by the owner; branch pushed to GitHub as a backup | first CI run on `bf830e4`: checks job and secret scan both succeeded |
 | 2026-11-24 | A2 step 1: `npm test` | 188 of 188 (134 before + 35 accommodation + 19 migration planner); lint 0 errors; type-check passes |
 | 2026-11-24 | A2: `npm run appwrite:check` on `6afa1cbf000cec97cead` | 140 present, 17 missing (5 tables with their columns and indexes, 4 columns and 3 indexes on existing tables); nothing created |
+| 2026-11-24 | A2: `npm run appwrite:setup` on `6afa1cbf000cec97cead`, approved by the owner | 53 items created (5 tables, 37 columns, 11 indexes); `appwrite:check` afterwards: 193 present, 0 missing. Read back: row counts and row data of all 11 existing tables identical before and after; no existing column changed or removed; the 5 new tables have row security on, no permissions and 0 rows; live health check fine |
+| 2026-11-24 | A2: `npm run reference:dry` on the same project | 24 changes planned (3 room types, 2 dormitories, 6 rooms, 7 allocations, 6 reports get IDs); 0 warnings; a second run would plan 0. Nothing changed. Waiting for the owner's word before `reference:run` |

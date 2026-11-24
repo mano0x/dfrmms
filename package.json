@@ -15,6 +15,8 @@
     "appwrite:check": "node --env-file=.env.local scripts/appwrite-setup.mjs --check",
     "appwrite:verify": "node --env-file=.env.local scripts/appwrite-verify.mjs",
     "appwrite:test-users": "node --env-file=.env.local scripts/appwrite-test-users.mjs",
+    "reference:dry": "node --env-file=.env.local scripts/reference-migrate.mjs",
+    "reference:run": "node --env-file=.env.local scripts/reference-migrate.mjs --run",
     "test:api": "node --env-file=.env.local node_modules/vitest/vitest.mjs run tests/api --testTimeout=60000 --no-file-parallelism --hookTimeout=120000",
     "tp:check": "node --env-file=.env.test.local scripts/appwrite-setup.mjs --check",
     "tp:setup": "node --env-file=.env.test.local scripts/appwrite-setup.mjs",
