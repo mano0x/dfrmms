@@ -55,6 +55,22 @@ again against the code before work begins.
 | FR-33 | Anonymise a departed resident and keep the fault history | To build | F1 | |
 | FR-34 | Remove old photos and closed reports after a set period | To build | F1 | |
 
+## FR-24 in detail (module A2)
+
+| ID | Requirement | State |
+|----|-------------|-------|
+| FR-24.1 | An administrator manages dormitories: name, address, coordinates, active | Rules built; rest to build |
+| FR-24.2 | Room types are data an administrator manages | Rules built; rest to build |
+| FR-24.3 | An administrator manages rooms: number unique in its dormitory, floor, type, capacity, active | Rules built; rest to build |
+| FR-24.4 | An administrator allocates a resident to a room from a first day, which may be in the future, with an optional last day | Rules built; rest to build |
+| FR-24.5 | A resident has at most one allocation at a time | Rules built; rest to build |
+| FR-24.6 | A room never holds more residents than its capacity on any day, also under simultaneous requests | Rules built; the lock is to build |
+| FR-24.7 | A person's dormitory and room are worked out from their allocations and today's date in the dormitory's time zone | Rules built; rest to build |
+| FR-24.8 | An allocation can be ended or, before it starts, cancelled. A resident without a current allocation reads their own history, sees no dormitory content and creates nothing | Rules built; rest to build |
+| FR-24.9 | A room's capacity cannot be lowered below the residents already placed | Rules built; rest to build |
+| FR-24.10 | Existing free-text dormitory and room names are moved to reference data by a repeatable migration with a dry run and a backup | Planner built; script to build |
+| FR-24.11 | Only administrators manage reference data | Rules built; rest to build |
+
 ## Functional requirements (new modules)
 
 IDs inside each prefix are numbered when the module's first step fixes its

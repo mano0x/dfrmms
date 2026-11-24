@@ -24,6 +24,11 @@ export const TABLES = {
   reservations: "free_reservations",
   reservationLocks: "free_reservation_locks",
   listingReports: "free_listing_reports",
+  dormitories: "dormitories",
+  roomTypes: "room_types",
+  rooms: "rooms",
+  allocations: "allocations",
+  allocationLocks: "allocation_locks",
 } as const;
 
 export const PHOTO_BUCKET_ID = "dormitory-fault-photos";

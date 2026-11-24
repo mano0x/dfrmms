@@ -2,7 +2,7 @@
 
 Plan for extending DFRMMS from fault reporting into a wider dormitory portal.
 Written 2026-11-21 from the build brief and the owner's answers. **Status:
-approved by the owner on 2026-11-21. A1 is done and approved. A2 is next and waits for the owner's answers on its design.**
+approved by the owner on 2026-11-21. A1 is done and approved. A2 is in progress: rules and schema definition are written; creating the tables waits for the owner's word.**
 
 A new session without the earlier conversation starts here: read this file,
 then continue at the first unticked step. Rules that apply to every step are
@@ -69,6 +69,17 @@ in-app notifications; confidential neighbour notices; free-item sharing.
 | D19 | The daily job runs once a day. |
 | D20 | `vercel.json` asks for region `fra1`. The owner is reminded at the next deployment to check the region in the Vercel dashboard. |
 | D21 | The account `thayyab200@gmail.com` (student, created by the owner on purpose) is left as it is and is never used in tests. It is to be listed in `docs/data-inventory.md`, when that file exists, as a tester account with a real address. |
+| D22 | A2 is built and tested on the live project `6afa1cbf000cec97cead` (there is no test project). Conditions: tables and columns are only added; dry run first, with its full output shown; a backup file before any row changes; the owner's word before the real run; everything read back after it; tests clean up every row they create. |
+| D23 | Migration: ID columns are added beside the old text columns, which stay filled and are never cleared. The backup goes into a git-ignored folder. The run is repeatable and is run again just before the merge, to pick up rows the live site created in between. |
+| D24 | The migration covers all seven student profiles, including the owner's student account and the tester account. `scripts/appwrite-test-users.mjs` gives re-created test accounts a room and an allocation. |
+| D25 | Room types are data an administrator manages. Seeded: single, double, triple, marked `SAMPLE`. |
+| D26 | Migrated rooms get the `SAMPLE` type double and capacity 2, raised to fit when more residents share the room number (shown in the dry run), and are marked "needs review". |
+| D27 | Rent is per room type and dormitory (built in D1); there is no rent on the room. The allocation gets an empty rent override column now. |
+| D28 | One allocation per resident at a time. A future first day is allowed. Capacity is checked over overlapping periods, under a lock per room. |
+| D29 | A resident without a current allocation still reads their own history, but sees no dormitory content and creates nothing. Their open free-item listings and reservations are handled in the simplest safe way, reported to the owner. |
+| D30 | A report keeps its dormitory and room as text, as the record of where the fault was; the IDs go beside it. |
+| D31 | An administrator creating a resident chooses a room, which creates the allocation. Two existing tests and the documents change with it. |
+| D32 | Dormitory coordinates stay empty until E3; the address is marked `SAMPLE`. |
 
 ## 4. Decisions still open
 
@@ -78,7 +89,6 @@ These need an answer before the step that depends on them. None blocks A1.
 |---|----------|---------------|
 | O2 | Can the Appwrite plan hold a second project? (Owner tries; see "Test project" in the report of 2026-11-21.) | A1 API test run, if possible |
 | O3 | **Altering existing columns.** Three steps need a new value in an existing enum column: `applicant` in `users.role` (C5), `assigned` in `fault_reports.status` (B3), and new entries in `status_log.type`. The rule "the setup script only adds; never alter columns" forbids this as written. Proposal: allow the setup script one narrow extra action, "add elements to an enum column, never remove", shown in `appwrite:check` before it runs. | B1 (first new history type) |
-| O4 | **A2 migration.** Replacing the free-text `dormitory` and `roomNumber` with IDs changes existing rows (3 real profiles, 6 real reports). Proposal: add `dormitoryId` and `roomId` columns next to the old ones, fill them by a dry-run and run script that writes a backup file first, switch the code to the IDs, and leave the old text columns in place and unused. Nothing is dropped. | A2 |
 | O5 | Existing reports that are `open` with a technician assigned: do they become `assigned` in the same migration? Proposal: yes, by the same backed-up script. | B3 |
 | O7 | A nonce-based content security policy makes every page render on the server per request (no static pages). Accept that cost if it works, or keep the current policy? Decided after a trial in B8. | B8 |
 | O8 | Which secrets the owner will create and where (see section 7). They must be set in `.env.local`, the test env file and Vercel by the owner; I never see the values. | A3 |
@@ -126,12 +136,13 @@ Ideas from the owner are marked "idea 1" to "idea 12".
 
 **A2. Reference data: dormitories, rooms, allocations** (FR-24)
 
-- [ ] Pure rules `lib/accommodation.ts`: schemas, capacity rule, allocation states; unit tests.
-- [ ] Tables `dormitories`, `rooms`, `allocations`, `room_locks` (lock rows for capacity).
+- [x] Pure rules `lib/accommodation.ts` (35 unit tests) and the migration planner `lib/accommodation-migration.ts` (19 unit tests). Done 2026-11-24.
+- [ ] Tables `dormitories`, `room_types`, `rooms`, `allocations`, `allocation_locks`; `dormitoryId` on reports, notices and listings, `roomId` on reports. Defined in the setup script 2026-11-24; `appwrite:check` shown to the owner; **not created yet**.
 - [ ] Server operations and admin routes; allocation under the lock-row pattern.
-- [ ] Migration scripts `reference:dry` and `reference:run` (O4), with a backup file.
+- [ ] Migration scripts `reference:dry` and `reference:run` (D23), with a backup file; test accounts get rooms (D24).
 - [ ] Switch users, reports, notices and listings to IDs; names resolved at read time.
-- [ ] API tests: capacity under simultaneous allocation; dormitory isolation after migration.
+- [ ] API tests: capacity under simultaneous allocation; dormitory isolation proven on the IDs; a resident without an allocation (D29).
+- [ ] Report to the owner: every place that still reads the old text columns; none may be a permission decision.
 - [ ] Admin pages; `docs/accommodation.md`.
 
 **A3. Shared server utilities** (FR-29, SEC-11, SEC-13, FR-17, NFR-07)
@@ -244,7 +255,7 @@ New tables by module. Every table: row security on, no permissions.
 
 | Module | Tables | Changes to existing tables |
 |--------|--------|----------------------------|
-| A2 | `dormitories`, `rooms`, `allocations`, `room_locks` | `dormitoryId`, `roomId` added to `users`, `fault_reports`, `neighbour_notices`, `free_listings` (O4) |
+| A2 | `dormitories`, `room_types`, `rooms`, `allocations`, `allocation_locks` | `dormitoryId` added to `fault_reports`, `neighbour_notices`, `free_listings`; `roomId` to `fault_reports`. Nothing is added to `users`: where a person lives is worked out from their allocations |
 | A3 | `security_events`, `rate_limits` | none |
 | B2 | none | `rating`, `ratingComment`, `resolvedAt` use on `fault_reports` |
 | B3 | `visit_codes` | `entryAllowed` on `fault_reports`; `assigned` status (O3) |
@@ -303,3 +314,5 @@ Nothing else is planned. Charts are inline SVG; PDF is the browser's print.
 | 2026-11-21 | A1 after the removal: lint, type-check, `npm test`, build | 0 lint errors; type-check passes; 134 of 134; build succeeds, also with no Appwrite settings present |
 | 2026-11-21 | A1 | done; the API suite has not been run since the removal (see the A1 report) |
 | 2026-11-21 | A1 approved by the owner; branch pushed to GitHub as a backup | first CI run on `bf830e4`: checks job and secret scan both succeeded |
+| 2026-11-24 | A2 step 1: `npm test` | 188 of 188 (134 before + 35 accommodation + 19 migration planner); lint 0 errors; type-check passes |
+| 2026-11-24 | A2: `npm run appwrite:check` on `6afa1cbf000cec97cead` | 140 present, 17 missing (5 tables with their columns and indexes, 4 columns and 3 indexes on existing tables); nothing created |

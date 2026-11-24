@@ -53,6 +53,7 @@ const ITEM_CATEGORIES = ["books", "electronics", "furniture", "kitchenware", "cl
 const ITEM_CONDITIONS = ["new", "good", "used"];
 const ITEM_STATUSES = ["available", "reserved", "collected", "removed"];
 const RESERVATION_STATUSES = ["active", "cancelled", "expired", "collected"];
+const ALLOCATION_STATUSES = ["active", "ended", "cancelled"];
 const LOG_TYPES = ["created", "edited", "status", "assignment", "priority", "note"];
 
 const text = (key, size, required = false) => ({ kind: "varchar", key, size, required });
@@ -60,6 +61,7 @@ const choice = (key, elements, required = false) => ({ kind: "enum", key, elemen
 const date = (key, required = false) => ({ kind: "datetime", key, required });
 const flag = (key, required = false) => ({ kind: "boolean", key, required });
 const whole = (key, required = false) => ({ kind: "integer", key, required });
+const decimal = (key, required = false) => ({ kind: "float", key, required });
 
 // Row IDs: users use the account ID; reports and history keep their
 // Firestore document IDs so existing relationships stay valid.
@@ -100,6 +102,10 @@ const TABLES = [
       text("studentName", 320),
       text("dormitory", 60),
       text("roomNumber", 20),
+      // Reference data (A2). The two text columns above stay: they record
+      // where the fault was, as it was written at the time.
+      text("dormitoryId", 36),
+      text("roomId", 36),
       text("assignedTo", 80),
       text("assignedToId", 36),
       text("resolutionNote", 1000),
@@ -112,6 +118,7 @@ const TABLES = [
       { key: "status", type: TablesDBIndexType.Key, columns: ["status"] },
       { key: "assignedToId", type: TablesDBIndexType.Key, columns: ["assignedToId"] },
       { key: "photoFileId", type: TablesDBIndexType.Key, columns: ["photoFileId"] },
+      { key: "dormitoryId", type: TablesDBIndexType.Key, columns: ["dormitoryId"] },
     ],
   },
   {
@@ -156,6 +163,7 @@ const TABLES = [
       text("subject", 120, true),
       text("description", 1500, true),
       text("dormitory", 60, true),
+      text("dormitoryId", 36),
       choice("area", NOTICE_AREAS),
       choice("status", NOTICE_STATUSES, true),
       flag("published"),
@@ -170,6 +178,7 @@ const TABLES = [
       { key: "status", type: TablesDBIndexType.Key, columns: ["status"] },
       { key: "dormitory", type: TablesDBIndexType.Key, columns: ["dormitory"] },
       { key: "createdAt", type: TablesDBIndexType.Key, columns: ["createdAt"] },
+      { key: "dormitoryId", type: TablesDBIndexType.Key, columns: ["dormitoryId"] },
     ],
   },
   {
@@ -222,6 +231,7 @@ const TABLES = [
       text("location", 120, true),
       text("collectionTime", 120),
       text("dormitory", 60, true),
+      text("dormitoryId", 36),
       text("photoIds", 120),
       choice("status", ITEM_STATUSES, true),
       text("removedBy", 10),
@@ -241,6 +251,7 @@ const TABLES = [
       { key: "status", type: TablesDBIndexType.Key, columns: ["status"] },
       { key: "reservedById", type: TablesDBIndexType.Key, columns: ["reservedById"] },
       { key: "createdAt", type: TablesDBIndexType.Key, columns: ["createdAt"] },
+      { key: "dormitoryId", type: TablesDBIndexType.Key, columns: ["dormitoryId"] },
     ],
   },
   {
@@ -289,6 +300,98 @@ const TABLES = [
       { key: "listingId", type: TablesDBIndexType.Key, columns: ["listingId"] },
       { key: "reporterId", type: TablesDBIndexType.Key, columns: ["reporterId"] },
     ],
+  },
+  /* ---- Reference data (A2) ---- */
+  {
+    id: "dormitories",
+    name: "Dormitories",
+    columns: [
+      text("name", 80, true),
+      text("address", 200),
+      decimal("latitude"),
+      decimal("longitude"),
+      flag("active"),
+      date("createdAt", true),
+      date("updatedAt", true),
+    ],
+    indexes: [
+      { key: "name_unique", type: TablesDBIndexType.Unique, columns: ["name"] },
+    ],
+  },
+  {
+    // Room types are data an administrator manages, not a list in the code.
+    id: "room_types",
+    name: "Room types",
+    columns: [
+      text("name", 40, true),
+      flag("active"),
+      date("createdAt", true),
+    ],
+    indexes: [
+      { key: "name_unique", type: TablesDBIndexType.Unique, columns: ["name"] },
+    ],
+  },
+  {
+    id: "rooms",
+    name: "Rooms",
+    columns: [
+      text("dormitoryId", 36, true),
+      text("number", 20, true),
+      // The number in lower case without surrounding spaces: "12A" and "12a" are one room.
+      text("numberKey", 20, true),
+      whole("floor"),
+      text("roomTypeId", 36, true),
+      whole("capacity", true),
+      // Set by the data migration: type and capacity are placeholders to check.
+      flag("needsReview"),
+      flag("active"),
+      date("createdAt", true),
+      date("updatedAt", true),
+    ],
+    indexes: [
+      { key: "dormitoryId", type: TablesDBIndexType.Key, columns: ["dormitoryId"] },
+      { key: "room_unique", type: TablesDBIndexType.Unique, columns: ["dormitoryId", "numberKey"] },
+    ],
+  },
+  {
+    // Who lives where, and when. A person's dormitory and room are worked
+    // out from these rows and today's date; nothing is copied to the profile.
+    id: "allocations",
+    name: "Room allocations",
+    columns: [
+      text("residentId", 36, true),
+      text("roomId", 36, true),
+      text("dormitoryId", 36, true),
+      // Calendar days, YYYY-MM-DD. No end date means open-ended.
+      text("startDate", 10, true),
+      text("endDate", 10),
+      choice("status", ALLOCATION_STATUSES, true),
+      // Monthly rent in whole cents when it differs from the room type's
+      // rent. Empty until the charges module uses it.
+      whole("rentOverrideCents"),
+      text("createdById", 36),
+      text("endedById", 36),
+      date("createdAt", true),
+      date("updatedAt", true),
+    ],
+    indexes: [
+      { key: "residentId", type: TablesDBIndexType.Key, columns: ["residentId"] },
+      { key: "roomId", type: TablesDBIndexType.Key, columns: ["roomId"] },
+      { key: "dormitoryId", type: TablesDBIndexType.Key, columns: ["dormitoryId"] },
+      { key: "status", type: TablesDBIndexType.Key, columns: ["status"] },
+    ],
+  },
+  {
+    // Short-lived locks taken while an allocation is checked and written, so
+    // two requests cannot fill the last place in a room at the same time.
+    // The row ID names what is locked: one row per room, one per resident.
+    id: "allocation_locks",
+    name: "Allocation locks",
+    columns: [
+      text("heldBy", 36, true),
+      date("createdAt", true),
+    ],
+    indexes: [],
   },
 ];
 
@@ -351,6 +454,7 @@ function createColumn(tableId, c) {
     case "datetime": return tablesDB.createDatetimeColumn(common);
     case "boolean": return tablesDB.createBooleanColumn(common);
     case "integer": return tablesDB.createIntegerColumn(common);
+    case "float": return tablesDB.createFloatColumn(common);
     default: throw new Error(`Unknown column kind: ${c.kind}`);
   }
 }
