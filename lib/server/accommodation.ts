@@ -229,6 +229,7 @@ export async function listOwnAllocations(actor: Actor): Promise<OwnAllocationVie
 async function checkCreationLimit(kind: CreationKind) {
   const since = new Date(Date.now() - CREATION_WINDOW_MS).toISOString();
   const { total } = await adminServices().tablesDB.listRows({ ...table(KIND_TABLE[kind]), queries: [Query.greaterThan("createdAt", since), Query.limit(1)] });
+  if (overCreationLimit(kind, total)) await recordEvent({ type: "rate-limited", outcome: "refused", targetType: kind, detail: `Hourly limit of ${CREATION_LIMITS[kind]} reached.` });
   if (overCreationLimit(kind, total)) throw new HttpError(429, `At most ${CREATION_LIMITS[kind]} can be created in one hour. Please try again later.`);
 }
 
@@ -276,6 +277,10 @@ async function withLocks<T>(lockIds: string[], heldBy: string, work: () => Promi
 /* Dormitories and room types                                          */
 /* ------------------------------------------------------------------ */
 
+/** Every change to reference data is written to the security event log, with who made it. */
+const referenceChanged = (actor: Actor, targetType: string, targetId: string, detail: string) =>
+  recordEvent({ type: "reference-data-changed", outcome: "ok", actorId: actor.id, actorRole: actor.role, targetType, targetId, detail });
+
 type DormitoryFields = { name: string; address?: string | null; latitude?: number | null; longitude?: number | null; active: boolean };
 type RoomTypeFields = { name: string; active: boolean };
 type RoomFields = { dormitoryId: string; number: string; floor?: number | null; roomTypeId: string; capacity: number; active: boolean };
@@ -298,6 +303,7 @@ export async function createDormitory(actor: Actor, body: unknown): Promise<Dorm
   const at = new Date().toISOString();
   try {
     const row = await adminServices().tablesDB.createRow({ ...dormitoryTable, rowId: ID.unique(), permissions: [], data: { ...dormitoryData(input), createdAt: at, updatedAt: at } });
+    await referenceChanged(actor, "dormitory", row.$id, "Added.");
     return toDormitory(row);
   } catch (err) {
     if (isConflict(err)) throw new HttpError(409, "A dormitory with this name already exists.");
@@ -312,6 +318,7 @@ export async function updateDormitory(actor: Actor, dormitoryId: string, body: u
   await refuseSameName(dormitoryTable, input.name, dormitory.id, "A dormitory");
   try {
     const row = await adminServices().tablesDB.updateRow({ ...dormitoryTable, rowId: dormitory.id, data: { ...dormitoryData(input), updatedAt: new Date().toISOString() } });
+    await referenceChanged(actor, "dormitory", row.$id, "Changed.");
     return toDormitory(row);
   } catch (err) {
     if (isConflict(err)) throw new HttpError(409, "A dormitory with this name already exists.");
@@ -326,6 +333,7 @@ export async function createRoomType(actor: Actor, body: unknown): Promise<RoomT
   await checkCreationLimit("roomTypes");
   try {
     const row = await adminServices().tablesDB.createRow({ ...roomTypeTable, rowId: ID.unique(), permissions: [], data: { name: input.name, active: input.active, createdAt: new Date().toISOString() } });
+    await referenceChanged(actor, "room type", row.$id, "Added.");
     return toRoomType(row);
   } catch (err) {
     if (isConflict(err)) throw new HttpError(409, "A room type with this name already exists.");
@@ -339,7 +347,9 @@ export async function updateRoomType(actor: Actor, roomTypeId: string, body: unk
   const input = parse<RoomTypeFields>(roomTypeInputSchema, body);
   await refuseSameName(roomTypeTable, input.name, roomType.id, "A room type");
   try {
-    return toRoomType(await adminServices().tablesDB.updateRow({ ...roomTypeTable, rowId: roomType.id, data: { name: input.name, active: input.active } }));
+    const row = await adminServices().tablesDB.updateRow({ ...roomTypeTable, rowId: roomType.id, data: { name: input.name, active: input.active } });
+    await referenceChanged(actor, "room type", row.$id, "Changed.");
+    return toRoomType(row);
   } catch (err) {
     if (isConflict(err)) throw new HttpError(409, "A room type with this name already exists.");
     throw err;
@@ -374,6 +384,7 @@ export async function createRoom(actor: Actor, body: unknown): Promise<RoomView>
         capacity: input.capacity, needsReview: false, active: input.active, createdAt: at, updatedAt: at,
       },
     });
+    await referenceChanged(actor, "room", row.$id, "Added.");
     return roomView(toRoom(row), roomType.name, [], today());
   } catch (err) {
     // The unique index on dormitory and room number decides, also for two simultaneous requests.
@@ -403,6 +414,7 @@ export async function updateRoom(actor: Actor, roomId: string, body: unknown): P
           capacity: input.capacity, needsReview: false, active: input.active, updatedAt: new Date().toISOString(),
         },
       });
+      await referenceChanged(actor, "room", row.$id, `Changed. Places: ${input.capacity}.`);
       return roomView(toRoom(row), roomType.name, placed, today());
     } catch (err) {
       if (isConflict(err)) throw new HttpError(409, "This dormitory already has a room with that number.");

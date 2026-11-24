@@ -267,3 +267,19 @@ describe("days of the event filter", () => {
     expect(dayRangeUtc()).toEqual({ from: null, before: null });
   });
 });
+
+describe("one request at a time per person", () => {
+  it("SEC-13: the lock belongs to one kind of limit and one person", async () => {
+    const { limitLockName } = await import("../../lib/rate-limit");
+    expect(limitLockName("notice", "s1")).toBe("lock|notice|s1");
+    expect(limitLockName("notice", "s1")).not.toBe(limitLockName("notice", "s2"));
+    expect(limitLockName("notice", "s1")).not.toBe(limitLockName("listing", "s1"));
+  });
+  it("SEC-13: a lock may be taken over only when it is older than 30 seconds", async () => {
+    const { LIMIT_LOCK_STALE_MS, limitLockIsStale } = await import("../../lib/rate-limit");
+    const now = new Date("2026-11-25T10:00:00.000Z");
+    expect(limitLockIsStale(new Date(now.getTime() - 1000), now)).toBe(false);
+    expect(limitLockIsStale(new Date(now.getTime() - LIMIT_LOCK_STALE_MS), now)).toBe(false);
+    expect(limitLockIsStale(new Date(now.getTime() - LIMIT_LOCK_STALE_MS - 1).toISOString(), now)).toBe(true);
+  });
+});

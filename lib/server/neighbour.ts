@@ -21,6 +21,7 @@ import {
 import { getProfile } from "./profiles";
 import { currentDormitoryId, residenceFor, withDormitoryNames } from "./accommodation";
 import { recordEvent } from "./events";
+import { oneAtATime } from "./limiter";
 import { HttpError } from "./http";
 import { inTransaction } from "./transaction";
 import { administratorIds, notify, type NewNotification } from "./notifications";
@@ -156,6 +157,8 @@ export async function createNotice(actor: Actor, body: unknown): Promise<NoticeV
   const parsed = noticeInputSchema.safeParse(body);
   if (!parsed.success) throw new HttpError(400, firstError(parsed));
 
+  // Counting and writing happen under a lock, so two requests sent at the same moment cannot both pass the limit.
+  return oneAtATime("notice", viewer.id, async () => {
   const { tablesDB } = adminServices();
   const now = new Date();
   const recent = await tablesDB.listRows({
@@ -167,6 +170,7 @@ export async function createNotice(actor: Actor, body: unknown): Promise<NoticeV
     ],
   });
   if (overNoticeLimit(recent.rows.map((r) => r.createdAt), now)) {
+    await recordEvent({ type: "rate-limited", outcome: "refused", actorId: viewer.id, actorRole: viewer.role, targetType: "notice", detail: `Limit of ${NOTICE_LIMIT} notices in 24 hours reached.` });
     throw new HttpError(429, `You can send at most ${NOTICE_LIMIT} notices in 24 hours. Please try again later.`);
   }
 
@@ -203,6 +207,7 @@ export async function createNotice(actor: Actor, body: unknown): Promise<NoticeV
     }
   });
   return noticeFor(viewer, notice);
+  });
 }
 
 /* ------------------------------------------------------------------ */

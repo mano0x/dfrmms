@@ -25,6 +25,8 @@ import {
   type ListingView, type StoredListing, type Viewer,
 } from "../sharing";
 import { currentDormitoryId, residenceFor, withDormitoryNames } from "./accommodation";
+import { recordEvent } from "./events";
+import { oneAtATime } from "./limiter";
 import { currentNames } from "./names";
 import { HttpError } from "./http";
 import { inTransaction } from "./transaction";
@@ -292,6 +294,8 @@ export async function createListing(actor: Actor, body: unknown): Promise<Listin
   if (!residence || !canPublishItem(viewer)) throw new HttpError(403, "You have no room in a dormitory at the moment, so an item cannot be published. Contact an administrator.");
   const { photoIds, data } = parseListing(body);
 
+  // Counting and writing happen under a lock, so two requests sent at the same moment cannot both pass the limit.
+  return oneAtATime("listing", viewer.id, async () => {
   const { tablesDB } = adminServices();
   const now = new Date();
   const recent = await tablesDB.listRows({
@@ -299,6 +303,7 @@ export async function createListing(actor: Actor, body: unknown): Promise<Listin
     queries: [Query.equal("ownerId", viewer.id), Query.greaterThan("createdAt", new Date(now.getTime() - LISTING_WINDOW_MS).toISOString()), Query.limit(LISTING_LIMIT + 1)],
   });
   if (overListingLimit(recent.rows.map((r) => r.createdAt), now)) {
+    await recordEvent({ type: "rate-limited", outcome: "refused", actorId: viewer.id, actorRole: viewer.role, targetType: "listing", detail: `Limit of ${LISTING_LIMIT} items in 24 hours reached.` });
     throw new HttpError(429, `You can publish at most ${LISTING_LIMIT} items in 24 hours. Please try again later.`);
   }
   await claimPhotos(viewer, photoIds);
@@ -311,6 +316,7 @@ export async function createListing(actor: Actor, body: unknown): Promise<Listin
     data: { ...data, ownerId: viewer.id, dormitory: residence.dormitoryName, dormitoryId: residence.dormitoryId, status: "available", expiryWarned: false, createdAt: at, updatedAt: at },
   });
   return shaped(viewer, toListing(row));
+  });
 }
 
 export async function editListing(actor: Actor, listingId: string, body: unknown): Promise<ListingView> {

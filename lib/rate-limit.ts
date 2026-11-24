@@ -15,7 +15,13 @@
  *
  * Cost of fixed windows: a person can use the whole limit just before a
  * window ends and again just after, so up to 2 x N within a short time
- * across the boundary. For the limits here that is acceptable.
+ * across the boundary.
+ *
+ * Decision of 2026-11-25: the limits on notices and free items stay "in any
+ * 24 hours" (a rolling period) and therefore do NOT use these places; they
+ * use the lock at the end of this file. The places are kept for limits that
+ * have no rows of their own to count, such as attempts per network address
+ * (module B7). Nothing uses them yet.
  */
 
 export type LimitRule = {
@@ -63,3 +69,20 @@ export function periodName(windowMs: number): string {
 /** The message shown when a limit is reached. */
 export const limitMessage = (rule: LimitRule, what: string): string =>
   `You can ${what} at most ${rule.max} time${rule.max === 1 ? "" : "s"} in one ${periodName(rule.windowMs)}. Please try again later.`;
+
+/* ------------------------------------------------------------------ */
+/* One request at a time per person                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Limits counted over a rolling period ("in any 24 hours") read the count
+ * from the data and then write. To make that safe, only one such request of
+ * one person runs at a time, guarded by a lock row (lib/server/limiter.ts).
+ */
+export const limitLockName = (scope: string, subjectId: string): string => `lock|${scope}|${subjectId}`;
+
+/** A lock older than this was left behind by a request that failed half-way and may be taken over. */
+export const LIMIT_LOCK_STALE_MS = 30 * 1000;
+
+export const limitLockIsStale = (createdAt: string | Date, now: Date = new Date()): boolean =>
+  now.getTime() - new Date(createdAt).getTime() > LIMIT_LOCK_STALE_MS;
