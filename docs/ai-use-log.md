@@ -156,3 +156,19 @@ the declaration as well.
   the key ID, the IV, the tag and the ciphertext, and what the context does.
 - The log holds entries of the author's own accounts from the days of
   testing; they are real and were left in place.
+
+## 2026-11-25: A4, navigation
+
+**Module:** A4.
+
+**What the AI generated or changed**
+
+- Rewrote `components/SectionNav.tsx`: the links are in named groups, and
+  technicians have the bar with their work queue and their notifications.
+
+**What the author must review and verify**
+
+- Open the application as each role and check that every link is where you
+  expect it; the grouping is a design choice and easy to change.
+- The bar only decides what is shown. Check in one route of your choice
+  that the role is still checked on the server.

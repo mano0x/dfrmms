@@ -2,7 +2,7 @@
 
 Plan for extending DFRMMS from fault reporting into a wider dormitory portal.
 Written 2026-11-21 from the build brief and the owner's answers. **Status:
-approved by the owner on 2026-11-21. A1 is done and approved. A2 is done and was approved on 2026-11-24 (branch pushed at `a9e7147`). A3 is in progress: the two tables exist and the security event log is written (writer, routes, hooks, pages, 16 API tests). The API tests pass (193 of 193 on 2026-11-24). The limiter is done (201 of 201 API tests on 2026-11-25). The secrets are set locally and the daily job and `docs/platform.md` are written (2026-11-25). A3 is done and was approved by the owner on 2026-11-25. Next: A4, navigation. Earlier note: then the daily job, paging of the report lists and `docs/platform.md`.**
+approved by the owner on 2026-11-21. A1 is done and approved. A2 is done and was approved on 2026-11-24 (branch pushed at `a9e7147`). A3 is in progress: the two tables exist and the security event log is written (writer, routes, hooks, pages, 16 API tests). The API tests pass (193 of 193 on 2026-11-24). The limiter is done (201 of 201 API tests on 2026-11-25). The secrets are set locally and the daily job and `docs/platform.md` are written (2026-11-25). A3 is done and was approved by the owner on 2026-11-25. A4 (navigation) is written and checked in a browser on 2026-11-25; it waits for the owner's approval. Next after that: Phase B, starting with B1. Earlier note: then the daily job, paging of the report lists and `docs/platform.md`.**
 
 A new session without the earlier conversation starts here: read this file,
 then continue at the first unticked step. Rules that apply to every step are
@@ -161,8 +161,8 @@ Ideas from the owner are marked "idea 1" to "idea 12".
 
 **A4. Navigation**
 
-- [ ] Grouped navigation inside the existing design; technicians get notifications.
-- [ ] Check at 360 px and by keyboard.
+- [x] Grouped navigation inside the existing design; technicians get notifications. Done 2026-11-25 in `components/SectionNav.tsx`: groups Maintenance, Community, Residents, System, then Notifications; the group names are shown from 1280 px wide and are always given to screen readers; technicians now have the bar with "Work queue" and "Notifications".
+- [x] Check at 360 px and by keyboard. Done 2026-11-25 (see the progress log).
 
 ### Phase B. Maintenance core
 
@@ -348,5 +348,6 @@ Nothing else is planned. Charts are inline SVG; PDF is the browser's print.
 | 2026-11-25 | A3, daily job written: `npm test`, lint, type-check, build | 240 of 240 unit tests; lint 0 errors, 5 older warnings; type-check and build pass. `npm run test:api` **not run** since this change (8 new tests in `tests/api/jobs.test.ts`) |
 | 2026-11-25 | A3: `tests/api/jobs.test.ts` alone, then `npm run test:api` (nine files), local built server, live project, approved by the owner | 8 of 8, then **226 of 226** (218 before + 8 new) on the first run. The full run took 1008 s, about twice the usual time; nothing failed |
 | 2026-11-25 | A3: row counts after the run (read-only) | All tables as before the run: 0 lock rows, no row of a test account in the log, the 8 log entries of the owner's own accounts unchanged |
+| 2026-11-25 | A4: lint, type-check, build; browser check as test administrator, technician and resident | Lint 0 errors, type-check and build pass. Administrator: six links in four named groups plus Notifications; the bar fits without scrolling at 897 px (names hidden) and at 1400 px (names shown); at 360 px the bar scrolls inside itself, the page does not, and a link focused by keyboard is brought into view. Technician: "Work queue" and "Notifications"; the notifications page opens. Resident: four links. Unit and API tests were not run again: only the navigation component changed |
 | 2026-11-24 | A2: row counts after the runs (read-only) | Same as before the runs: 6 reports, 3 history rows, 2 dormitories, 3 room types, 6 rooms, 7 allocations (all active); 0 notices, listings, reservations, notifications and locks; no row named ACC-TEST or API-TEST; the 4 roomless test residents have no allocation and no room text. 16 accounts and profiles (12 before + the 4 new test residents) |
 | 2026-11-24 | A2: browser check of `/admin/accommodation` and the create-user form, signed in as the test administrator, read-only | All four tabs show the migrated data; no sideways scrolling at 360 px; every field has a label. No change was made through the page |
