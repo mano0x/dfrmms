@@ -6,12 +6,16 @@ import { roleFromLabels, setSessionCookie } from "@/lib/server/session";
 import { clearAttempts, getAttemptState, recordFailedAttempt } from "@/lib/server/throttle";
 import { getProfile } from "@/lib/server/profiles";
 import { residenceFor } from "@/lib/server/accommodation";
+import { recordEvent } from "@/lib/server/events";
 
 const ROLE_NAME = { student: "student", technician: "technician", admin: "administrator" } as const;
 
 /** Sign in. On success the session is stored in an httpOnly cookie. */
 export async function POST(request: Request) {
-  if (!isSameOrigin(request)) return fail(403, "Request blocked: it did not come from this site.");
+  if (!isSameOrigin(request)) {
+    await recordEvent({ type: "origin-refused", outcome: "refused", detail: "POST /api/auth/login" }, request);
+    return fail(403, "Request blocked: it did not come from this site.");
+  }
 
   const parsed = loginSchema.safeParse(await readJson(request));
   if (!parsed.success) return fail(400, firstError(parsed));
@@ -21,6 +25,8 @@ export async function POST(request: Request) {
   const attempts = await getAttemptState(email);
   if (isLockedOut(attempts)) {
     const minutes = lockoutMinutesLeft(attempts);
+    // The e-mail address is not written to the log; the address hash shows where the attempts come from.
+    await recordEvent({ type: "sign-in-locked", outcome: "refused", detail: "Attempt while sign-in is blocked." }, request);
     return fail(429, `Too many failed attempts. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`);
   }
 
@@ -32,6 +38,7 @@ export async function POST(request: Request) {
     // Same message for a wrong password and an unknown address, so the
     // response does not reveal which addresses have accounts.
     const next = await recordFailedAttempt(email, attempts);
+    await recordEvent({ type: "sign-in-failed", outcome: "refused", detail: isLockedOut(next) ? "Wrong password or unknown address. Sign-in is now blocked for a while." : "Wrong password or unknown address." }, request);
     if (isLockedOut(next)) {
       return fail(429, `Too many failed attempts. Try again in ${lockoutMinutesLeft(next)} minutes.`);
     }
@@ -50,11 +57,13 @@ export async function POST(request: Request) {
     }
     if (role !== selectedRole) {
       await endSession();
+      await recordEvent({ type: "sign-in-failed", outcome: "refused", actorId: user.$id, actorRole: role, detail: "Correct password, but another role was chosen on the sign-in page." }, request);
       return fail(403, `This is a ${ROLE_NAME[role]} account, not a ${ROLE_NAME[selectedRole]} account. Go back and choose the right role.`);
     }
 
     await clearAttempts(email);
     await setSessionCookie(secret);
+    await recordEvent({ type: "sign-in", outcome: "ok", actorId: user.$id, actorRole: role }, request);
     const [profile, residence] = await Promise.all([getProfile(user.$id), role === "student" ? residenceFor(user.$id) : null]);
     return ok({
       user: {

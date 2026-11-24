@@ -415,11 +415,11 @@ const TABLES = [
       date("createdAt", true),
     ],
     indexes: [
-      { key: "type", columns: ["type"] },
-      { key: "outcome", columns: ["outcome"] },
-      { key: "actorId", columns: ["actorId"] },
-      { key: "subjectId", columns: ["subjectId"] },
-      { key: "createdAt", columns: ["createdAt"] },
+      { key: "type", type: TablesDBIndexType.Key, columns: ["type"] },
+      { key: "outcome", type: TablesDBIndexType.Key, columns: ["outcome"] },
+      { key: "actorId", type: TablesDBIndexType.Key, columns: ["actorId"] },
+      { key: "subjectId", type: TablesDBIndexType.Key, columns: ["subjectId"] },
+      { key: "createdAt", type: TablesDBIndexType.Key, columns: ["createdAt"] },
     ],
   },
   {
@@ -435,7 +435,7 @@ const TABLES = [
       date("expiresAt", true),
       date("createdAt", true),
     ],
-    indexes: [{ key: "expiresAt", columns: ["expiresAt"] }],
+    indexes: [{ key: "expiresAt", type: TablesDBIndexType.Key, columns: ["expiresAt"] }],
   },
 ];
 

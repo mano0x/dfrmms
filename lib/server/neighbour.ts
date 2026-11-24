@@ -20,6 +20,7 @@ import {
 } from "../neighbour";
 import { getProfile } from "./profiles";
 import { currentDormitoryId, residenceFor, withDormitoryNames } from "./accommodation";
+import { recordEvent } from "./events";
 import { HttpError } from "./http";
 import { inTransaction } from "./transaction";
 import { administratorIds, notify, type NewNotification } from "./notifications";
@@ -311,7 +312,14 @@ export async function revealSender(actor: Actor, noticeId: string, body: Record<
   if (!reason.success) throw new HttpError(400, firstError(reason));
 
   const at = new Date().toISOString();
-  await inTransaction((transactionId) => logRow(transactionId, notice.id, actor, { action: "identity-viewed", reason: reason.data }, at).then(() => {}));
+  await inTransaction(async (transactionId) => {
+    await logRow(transactionId, notice.id, actor, { action: "identity-viewed", reason: reason.data }, at);
+    // The sender can read this entry (without the administrator's name) under "Access to your data".
+    await recordEvent({
+      type: "identity-viewed", outcome: "ok", actorId: actor.id, actorRole: actor.role, subjectId: notice.senderId,
+      targetType: "notice", targetId: notice.id, detail: `Reason given: ${reason.data}`,
+    }, undefined, transactionId);
+  });
 
   const { users } = adminServices();
   const [account, profile, residence] = await Promise.all([

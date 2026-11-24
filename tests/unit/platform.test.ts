@@ -246,3 +246,24 @@ describe("keyed hash of a network address", () => {
     expect(() => keyedHash("203.0.113.7", "short")).toThrow(CryptoError);
   });
 });
+
+describe("days of the event filter", () => {
+  it("FR-29: a day in Vilnius begins at 22:00 UTC the evening before in winter and 21:00 in summer", async () => {
+    const { dayStartUtc } = await import("../../lib/security-events");
+    expect(dayStartUtc("2026-11-24").toISOString()).toBe("2026-11-23T22:00:00.000Z");
+    expect(dayStartUtc("2026-07-01").toISOString()).toBe("2026-06-30T21:00:00.000Z");
+  });
+  it("FR-29: the days on which the clocks change begin at the right moment", async () => {
+    const { dayStartUtc } = await import("../../lib/security-events");
+    expect(dayStartUtc("2026-03-29").toISOString()).toBe("2026-03-28T22:00:00.000Z");
+    expect(dayStartUtc("2026-03-30").toISOString()).toBe("2026-03-29T21:00:00.000Z");
+    expect(dayStartUtc("2026-10-25").toISOString()).toBe("2026-10-24T21:00:00.000Z");
+    expect(dayStartUtc("2026-10-26").toISOString()).toBe("2026-10-25T22:00:00.000Z");
+  });
+  it("FR-29: a filter from one day to another includes the whole last day", async () => {
+    const { dayRangeUtc } = await import("../../lib/security-events");
+    expect(dayRangeUtc("2026-11-24", "2026-11-24")).toEqual({ from: "2026-11-23T22:00:00.000Z", before: "2026-11-24T22:00:00.000Z" });
+    expect(dayRangeUtc(undefined, "2026-11-30")).toEqual({ from: null, before: "2026-11-30T22:00:00.000Z" });
+    expect(dayRangeUtc()).toEqual({ from: null, before: null });
+  });
+});

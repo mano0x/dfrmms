@@ -178,3 +178,33 @@ export const securityEventFilterSchema = z
   })
   .refine((f) => !f.from || !f.to || f.from <= f.to, "The first day cannot be after the last day.");
 export type SecurityEventFilter = z.infer<typeof securityEventFilterSchema>;
+
+/** How far a time zone is ahead of UTC at a given moment, in milliseconds. */
+function zoneOffsetMs(at: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(at);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  return Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second")) - Math.floor(at.getTime() / 1000) * 1000;
+}
+
+/** The moment a calendar day begins in a time zone. */
+export function dayStartUtc(day: string, timeZone: string = "Europe/Vilnius"): Date {
+  const utcMidnight = new Date(`${day}T00:00:00.000Z`);
+  // The offset is looked up twice, because it can differ on the day the clocks change.
+  const first = new Date(utcMidnight.getTime() - zoneOffsetMs(utcMidnight, timeZone));
+  return new Date(utcMidnight.getTime() - zoneOffsetMs(first, timeZone));
+}
+
+/**
+ * A filter's first and last day, as shown to people in Europe/Vilnius,
+ * turned into the stored UTC times: from the start of the first day up to,
+ * but not including, the start of the day after the last.
+ */
+export function dayRangeUtc(from?: string, to?: string, timeZone: string = "Europe/Vilnius"): { from: string | null; before: string | null } {
+  let before: string | null = null;
+  if (to) {
+    const next = new Date(`${to}T00:00:00.000Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    before = dayStartUtc(next.toISOString().slice(0, 10), timeZone).toISOString();
+  }
+  return { from: from ? dayStartUtc(from, timeZone).toISOString() : null, before };
+}

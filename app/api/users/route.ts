@@ -10,6 +10,7 @@ import { toProfile } from "@/lib/server/profiles";
 import { currentNames } from "@/lib/server/names";
 import { allResidences, allocate, residenceFor } from "@/lib/server/accommodation";
 import { withCurrentName } from "@/lib/names";
+import { recordEvent } from "@/lib/server/events";
 
 const optionalText = (max: number) =>
   z.string().trim().max(max).optional().nullable().transform((v) => (v ? v : null));
@@ -88,6 +89,7 @@ export async function POST(request: Request) {
     // The allocation applies the same rules as the allocation page: the room must be in use and have a free place.
     if (roomId) await allocate(guard.caller, { residentId: userId, roomId, startDate: today() });
     const residence = roomId ? await residenceFor(userId) : null;
+    await recordEvent({ type: "account-created", outcome: "ok", actorId: guard.caller.id, actorRole: guard.caller.role, subjectId: userId, targetType: "account", targetId: userId, detail: `Role: ${role}.` }, request);
     return ok({ user: { ...toProfile(row), dormitory: residence?.dormitoryName ?? null, roomNumber: residence?.roomNumber ?? null } }, 201);
   } catch (err) {
     // Do not leave a sign-in account without a role, profile or the chosen room behind.

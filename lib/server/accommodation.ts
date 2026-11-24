@@ -30,6 +30,7 @@ import { HttpError } from "./http";
 import { inTransaction } from "./transaction";
 import { notify } from "./notifications";
 import { roleFromLabels } from "./session";
+import { recordEvent } from "./events";
 
 type Target = { databaseId: string; tableId: string };
 const table = (tableId: string): Target => ({ databaseId: DATABASE_ID, tableId });
@@ -474,6 +475,10 @@ export async function allocate(actor: Actor, body: unknown): Promise<AllocationV
       if (wanted.startDate <= on) {
         await tablesDB.updateRow({ ...profileTable, rowId: input.residentId, transactionId, data: { dormitory: dormitory.name, roomNumber: room.number } });
       }
+      await recordEvent({
+        type: "allocation-created", outcome: "ok", actorId: actor.id, actorRole: actor.role, subjectId: input.residentId,
+        targetType: "allocation", targetId: id, detail: `Room ${room.id} from ${wanted.startDate}${wanted.endDate ? ` to ${wanted.endDate}` : ""}.`,
+      }, undefined, transactionId);
       await notify(transactionId, input.residentId, {
         type: "allocation-created", title: "You have been given a room",
         body: `${dormitory.name}, room ${room.number}, from ${wanted.startDate}${wanted.endDate ? ` to ${wanted.endDate}` : ""}.`, link: NOTIFICATION_PAGE,
@@ -527,6 +532,10 @@ export async function changeAllocation(actor: Actor, allocationId: string, body:
 
   await inTransaction(async (transactionId) => {
     await tablesDB.updateRow({ ...allocationTable, rowId: allocation.id, transactionId, data });
+    await recordEvent({
+      type: "allocation-changed", outcome: "ok", actorId: actor.id, actorRole: actor.role, subjectId: allocation.residentId,
+      targetType: "allocation", targetId: allocation.id, detail: body?.action === "end" ? `Ended on ${data.endDate}.` : "Cancelled before it started.",
+    }, undefined, transactionId);
     await notify(transactionId, allocation.residentId, { type: "allocation-changed", title: "Your room allocation changed", body: message, link: NOTIFICATION_PAGE }, at);
   });
   return shapedAllocation({ ...allocation, endDate: data.endDate ?? allocation.endDate, status: data.status ?? allocation.status }, room, dormitory);

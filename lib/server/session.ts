@@ -15,6 +15,7 @@ import { cookies } from "next/headers";
 import { ROLES, type Role } from "../maintenance";
 import { sessionServices } from "../appwrite/server";
 import { fail, isSameOrigin } from "./http";
+import { recordEvent } from "./events";
 
 export const SESSION_COOKIE = "dfrmms_session";
 const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60; // 12 hours
@@ -65,10 +66,15 @@ type Guarded = { caller: Caller; response?: undefined } | { caller?: undefined; 
  */
 export async function requireCaller(request: Request, allowed: readonly Role[]): Promise<Guarded> {
   if (request.method !== "GET" && request.method !== "HEAD" && !isSameOrigin(request)) {
+    await recordEvent({ type: "origin-refused", outcome: "refused", detail: `${request.method} ${new URL(request.url).pathname}` }, request);
     return { response: fail(403, "Request blocked: it did not come from this site.") };
   }
   const caller = await getCaller();
   if (!caller) return { response: fail(401, "You are not signed in.") };
-  if (!allowed.includes(caller.role)) return { response: fail(403, "You do not have permission to do this.") };
+  if (!allowed.includes(caller.role)) {
+    // A signed-in account asked for something its role may not do. The path is recorded, never the body.
+    await recordEvent({ type: "access-refused", outcome: "refused", actorId: caller.id, actorRole: caller.role, detail: `${request.method} ${new URL(request.url).pathname}` }, request);
+    return { response: fail(403, "You do not have permission to do this.") };
+  }
   return { caller };
 }
