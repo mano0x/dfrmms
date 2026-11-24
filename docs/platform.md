@@ -5,11 +5,9 @@ Everything under a heading exists in the code. Section 9 says exactly which
 tests were run and what was not tested. Section 10 lists what is not
 implemented; none of it may be described in the thesis as a working feature.
 
-Status on 2026-11-25: implemented; unit tests, lint, type-check and build
-pass. The API tests passed at 218 of 218 before the daily job was added;
-**the 8 API tests of the daily job have not been run yet**, and no full run
-has been made since the address hash key was set. Not merged into `main`
-and not deployed.
+Status on 2026-11-25: implemented; unit tests, API tests (226 of 226),
+lint, type-check and build pass against a local server and the Appwrite
+project. Not merged into `main` and not deployed.
 
 ## 1. Purpose
 
@@ -211,7 +209,7 @@ tampering, wrong record, key replacement, bad keys), the keyed hash, the
 report list filter and the overdue boundary, the daily job's secret check.
 
 API tests, run on 2026-11-25 against a local server and the Appwrite
-project (218 of 218 on the last full run):
+project (226 of 226 over all nine files on the last full run):
 
 - `tests/api/events.test.ts` (16): who reads the log; no way to change an
   entry; what each event records and leaves out; the sender lookup and what
@@ -223,13 +221,13 @@ project (218 of 218 on the last full run):
   filter; a resident never sees another's report by any search, filter or
   borrowed cursor; the counts match the database.
 
-**Written, not yet run:** `tests/api/jobs.test.ts` (8): refusal without the
+- `tests/api/jobs.test.ts` (8): refusal without the
 secret, with a wrong one, and with an administrator's session; the job
 removes an old lock and keeps a new one; a second run changes nothing; two
 runs at once both finish; each run is recorded.
 
-Not tested: the address hash in a real entry (the key was set after the
-last full run, and a local server receives no trustworthy address); the
+Not tested: the address hash in a real entry (a local server receives no
+address header, so the entries written during the tests carry none); the
 three-second wait for a log entry (it was added after a stalled connection
 showed the need; no test stalls the connection on purpose); encryption
 through any route (nothing uses it yet); the job being called by Vercel's
