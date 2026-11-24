@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
+import { fetchAccommodation } from "@/lib/rooms";
 import { useAuth } from "@/lib/AuthContext";
 import {
   allowedNextStatuses, firstError, isOverdue, newUserSchema, priorityForClassification,
@@ -62,8 +63,9 @@ export default function AdminDashboard() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState("student");
-  const [newDorm, setNewDorm] = useState("");
-  const [newRoom, setNewRoom] = useState("");
+  // A resident's room is chosen from the rooms that exist; the server makes the allocation.
+  const [newRoomId, setNewRoomId] = useState("");
+  const [roomOptions, setRoomOptions] = useState<{ id: string; label: string }[]>([]);
   const [newSpec, setNewSpec] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [creating, setCreating] = useState(false);
@@ -76,12 +78,19 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       // Both lists come from server routes that only answer administrators.
-      const [reportList, userList] = await Promise.all([
+      const [reportList, userList, accommodation] = await Promise.all([
         fetchReports(),
         api<{ users: UserRecord[] }>("/api/users"),
+        fetchAccommodation(),
       ]);
       setReports(reportList);
       setUsers(userList.users);
+      const dormitoryName = new Map(accommodation.dormitories.map((d) => [d.id, d.name]));
+      setRoomOptions(
+        accommodation.rooms
+          .filter((r) => r.active)
+          .map((r) => ({ id: r.id, label: `${dormitoryName.get(r.dormitoryId) ?? ""}, room ${r.number} (${r.occupiedToday} of ${r.capacity} taken)` })),
+      );
       setLoadError("");
     } catch (err) {
       console.error("Could not load the admin data:", err);
@@ -145,10 +154,10 @@ export default function AdminDashboard() {
       // the profile. It checks again that the caller is an administrator.
       await api("/api/users", {
         method: "POST",
-        body: { ...parsed.data, dormitory: newDorm, roomNumber: newRoom, specialization: newSpec },
+        body: { ...parsed.data, roomId: newRole === "student" ? newRoomId || null : null, specialization: newSpec },
       });
       setCreateMsg(`✓ User "${name}" created. They can now sign in with ${email}.`);
-      setNewName(""); setNewEmail(""); setNewDorm(""); setNewRoom(""); setNewSpec(""); setNewPassword("");
+      setNewName(""); setNewEmail(""); setNewRoomId(""); setNewSpec(""); setNewPassword("");
       fetchData();
     } catch (err) {
       setCreateMsg(err instanceof ApiError ? err.message : "Could not create the user. Please try again.");
@@ -466,14 +475,12 @@ export default function AdminDashboard() {
                 />
               </Field>
               {newRole === "student" && (
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <Field label="Dormitory" htmlFor="new-dorm">
-                    <input id="new-dorm" value={newDorm} onChange={(e) => setNewDorm(e.target.value)} maxLength={60} className={inputCls} placeholder="Dormitory A" />
-                  </Field>
-                  <Field label="Room number" htmlFor="new-room">
-                    <input id="new-room" value={newRoom} onChange={(e) => setNewRoom(e.target.value)} maxLength={20} className={inputCls} placeholder="204" />
-                  </Field>
-                </div>
+                <Field label="Room" htmlFor="new-room" hint="The resident lives there from today. Leave empty to give a room later, under Rooms and residents.">
+                  <select id="new-room" value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} className={selectCls}>
+                    <option value="">No room yet</option>
+                    {roomOptions.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+                  </select>
+                </Field>
               )}
               {newRole === "technician" && (
                 <Field label="Specialization" htmlFor="new-spec">

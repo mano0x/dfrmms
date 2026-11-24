@@ -116,7 +116,7 @@ export default function StudentNeighbourPage() {
         <div className="ui-fade-up grid gap-6 lg:grid-cols-[1fr_320px]">
           <Card className="p-5 sm:p-6">
             {!dormitory ? (
-              <Alert tone="info">Your profile has no dormitory, so a notice cannot be sent. Please contact an administrator.</Alert>
+              <Alert tone="info">You have no room in a dormitory at the moment, so a notice cannot be sent. Please contact an administrator.</Alert>
             ) : (
               <form
                 className="space-y-5"

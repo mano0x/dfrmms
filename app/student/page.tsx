@@ -212,7 +212,8 @@ export default function StudentDashboard() {
 
   const displayName = userProfile?.name || user?.email || "Student";
   const firstName = (userProfile?.name || "").split(" ")[0] || "there";
-  const location = `${userProfile?.dormitory || "General"} · Room ${userProfile?.roomNumber || "N/A"}`;
+  // The dormitory and room come from the resident's current allocation; without one, no report can be submitted.
+  const location = userProfile?.dormitory ? `${userProfile.dormitory} · Room ${userProfile.roomNumber || "—"}` : "No room allocated";
   const preview = calcPriority(urgency);
   const msgOk = successMsg.startsWith("✓");
   const msgText = successMsg.replace(/^(✓|❌)\s*/, "");
