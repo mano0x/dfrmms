@@ -2,7 +2,7 @@
 
 Plan for extending DFRMMS from fault reporting into a wider dormitory portal.
 Written 2026-11-21 from the build brief and the owner's answers. **Status:
-approved by the owner on 2026-11-21. A1 is done and approved. A2 is in progress: rules and schema definition are written; everything is written and the existing data is migrated (2026-11-24). Open: the first run of the module's API tests, which waits for the owner's word, and the owner's approval.**
+approved by the owner on 2026-11-21. A1 is done and approved. A2 is in progress: rules and schema definition are written; everything is written, the existing data is migrated and the API tests pass (2026-11-24). Open: the owner's approval, then a push of the branch.**
 
 A new session without the earlier conversation starts here: read this file,
 then continue at the first unticked step. Rules that apply to every step are
@@ -141,7 +141,7 @@ Ideas from the owner are marked "idea 1" to "idea 12".
 - [x] Server operations and admin routes; allocation under the lock-row pattern. Written 2026-11-24 (`lib/server/accommodation.ts`, `app/api/accommodation/**`).
 - [x] Migration scripts `reference:dry` and `reference:run` (D23), with a backup file; test accounts get rooms (D24). Run on 2026-11-24. Four test residents without a room were added for the allocation tests.
 - [x] Switch users, reports, notices and listings to IDs; names resolved at read time. Done 2026-11-24.
-- [ ] API tests: capacity under simultaneous allocation; dormitory isolation proven on the IDs; a resident without an allocation (D29). **Written (43 tests), not yet run:** the run on the live project waits for the owner's word.
+- [x] API tests: capacity under simultaneous allocation; dormitory isolation proven on the IDs; a resident without an allocation (D29). 43 tests; run on 2026-11-24 with the owner's word, results in the progress log.
 - [x] Report to the owner: every place that still reads the old text columns; none may be a permission decision. In `docs/accommodation.md`, section 8.
 - [x] Admin pages; `docs/accommodation.md`; `docs/data-inventory.md` started. Page checked in the browser at 360 px on 2026-11-24.
 - [ ] Run the migration dry run again just before the merge (D23).
@@ -322,5 +322,7 @@ Nothing else is planned. Charts are inline SVG; PDF is the browser's print.
 | 2026-11-24 | A2: `npm run reference:run` on the same project, approved by the owner | Backup written first to `migration-backups/` (git-ignored). 24 steps done, 0 failed: 3 room types, 2 dormitories, 6 rooms, 7 allocations created; `dormitoryId` and `roomId` filled on 6 reports. Read back: a fresh plan has 0 changes; the old fields of profiles, reports, notices and listings are unchanged. `reference:dry` straight after: 0 changes planned. Live health check fine |
 | 2026-11-24 | A2: `npm run appwrite:test-users -- --add-missing` on the same project | 4 test accounts created (`dfrmms.test.roomless1..4@example.com`, residents without a room); the 8 existing test accounts were left as they are |
 | 2026-11-24 | A2, after all code: `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build` | 194 of 194 unit tests; lint 0 errors, 5 warnings (all older); type-check passes; build passes |
-| 2026-11-24 | A2: `npm run test:api` | **Not run.** 43 new tests in `tests/api/accommodation.test.ts` are written. The run on the live project waits for the owner's word |
+| 2026-11-24 | A2: `tests/api/accommodation.test.ts` alone, local built server, live project, approved by the owner | First run: 38 of 43. The 5 failures were one group that started with a request the test itself got wrong (it sent the classification `routine`, which does not exist; the server correctly answered 400). Test input corrected to `normal`; second run: 43 of 43 |
+| 2026-11-24 | A2: `npm run test:api` (all five files) | First full run: 175 of 177. One test in `tests/api/sharing.test.ts` ("a reservation that runs out") timed out after 60 s and the next test depends on it. Cause not established; that file alone then passed 57 of 57. Second full run: **177 of 177** (134 before + 43 new), 338 s |
+| 2026-11-24 | A2: row counts after the runs (read-only) | Same as before the runs: 6 reports, 3 history rows, 2 dormitories, 3 room types, 6 rooms, 7 allocations (all active); 0 notices, listings, reservations, notifications and locks; no row named ACC-TEST or API-TEST; the 4 roomless test residents have no allocation and no room text. 16 accounts and profiles (12 before + the 4 new test residents) |
 | 2026-11-24 | A2: browser check of `/admin/accommodation` and the create-user form, signed in as the test administrator, read-only | All four tabs show the migrated data; no sideways scrolling at 360 px; every field has a label. No change was made through the page |

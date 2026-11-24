@@ -94,8 +94,9 @@ the declaration as well.
 
 **What the author must review and verify**
 
-- The API tests of this module have not been run. Nothing in the thesis may
-  say they pass until a run is recorded in the build plan.
+- The API tests were run on 2026-11-24 after the entry above was written:
+  177 of 177 on the second full run. The build plan records every run,
+  including the first ones that failed and why. Quote the counts from there.
 - Read `allocationProblem` and `peakOccupancy` and work one example by
   hand (capacity 2, three stays), then compare with the unit test.
 - Read `withLocks` and `allocate` in `lib/server/accommodation.ts` and

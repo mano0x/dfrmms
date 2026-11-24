@@ -2,13 +2,13 @@
 
 Thesis material for module A2 on branch `feature/dormitory-portal`.
 Everything under "Implemented" exists in the code. Section 10 says exactly
-which tests were run and which were not. Everything under "Not implemented"
+which tests were run and what was not tested. Everything under "Not implemented"
 is a proposal only and must not be described in the thesis as a working
 feature.
 
-Status on 2026-11-24: implemented; unit tests, lint, type-check and build
-pass. **The API tests of this module are written but have not been run yet.**
-Not merged into `main` and not deployed.
+Status on 2026-11-24: implemented; unit tests, API tests, lint, type-check
+and build pass against a local server and the Appwrite project. Not merged
+into `main` and not deployed.
 
 ## 1. Purpose
 
@@ -246,8 +246,10 @@ Unit tests (run on 2026-11-24, `npm test`: 194 of 194 pass):
 - `tests/unit/neighbour.test.ts`, `tests/unit/sharing.test.ts`: access is
   decided by the dormitory ID and never by the name.
 
-API tests (`tests/api/accommodation.test.ts`, 43 tests). **Written, not yet
-run.** They cover: every route without a session, as a resident, as a
+API tests (`tests/api/accommodation.test.ts`, 43 tests; run on 2026-11-24
+with `npm run test:api`: 177 of 177 pass over all five files, after one
+earlier full run in which a free-item test timed out for a reason that was
+not established and that did not repeat). They cover: every route without a session, as a resident, as a
 technician and from another origin; invalid input; fields the caller must
 not set; duplicate names and room numbers, also simultaneous; the allocation
 rules; three residents allocated the last place at the same moment; one

@@ -43,7 +43,7 @@ again against the code before work begins.
 | FR-21 | The system suggests a technician by specialisation and open workload | To build | B9 | |
 | FR-22 | Management dashboard | To build | B6 | |
 | FR-23 | CSV export of the filtered report list | To build | B6 | |
-| FR-24 | Dormitories and rooms are reference data | Built; API tests not run yet | A2 | FR-24.1 to FR-24.11 below and in `docs/accommodation.md`. |
+| FR-24 | Dormitories and rooms are reference data | Built | A2 | FR-24.1 to FR-24.11 below and in `docs/accommodation.md`. |
 | FR-25 | Every report change goes to an append-only history in the same transaction | Built | | |
 | FR-26 | In-app notifications for fault events | To build | B1 | Notifications exist for notices and free items only. |
 | FR-27 | E-mail for selected events | To build | B9 | Only with a mail provider. |
@@ -59,17 +59,17 @@ again against the code before work begins.
 
 | ID | Requirement | State |
 |----|-------------|-------|
-| FR-24.1 | An administrator manages dormitories: name, address, coordinates, active | Built; API tests not run yet |
-| FR-24.2 | Room types are data an administrator manages | Built; API tests not run yet |
-| FR-24.3 | An administrator manages rooms: number unique in its dormitory, floor, type, capacity, active | Built; API tests not run yet |
-| FR-24.4 | An administrator allocates a resident to a room from a first day, which may be in the future, with an optional last day | Built; API tests not run yet |
-| FR-24.5 | A resident has at most one allocation at a time | Built; API tests not run yet |
-| FR-24.6 | A room never holds more residents than its capacity on any day, also under simultaneous requests | Built; API tests not run yet |
-| FR-24.7 | A person's dormitory and room are worked out from their allocations and today's date in the dormitory's time zone | Built; API tests not run yet |
-| FR-24.8 | An allocation can be ended or, before it starts, cancelled. A resident without a current allocation reads their own history, sees no dormitory content and creates nothing | Built; API tests not run yet |
-| FR-24.9 | A room's capacity cannot be lowered below the residents already placed | Built; API tests not run yet |
+| FR-24.1 | An administrator manages dormitories: name, address, coordinates, active | Built |
+| FR-24.2 | Room types are data an administrator manages | Built |
+| FR-24.3 | An administrator manages rooms: number unique in its dormitory, floor, type, capacity, active | Built |
+| FR-24.4 | An administrator allocates a resident to a room from a first day, which may be in the future, with an optional last day | Built |
+| FR-24.5 | A resident has at most one allocation at a time | Built |
+| FR-24.6 | A room never holds more residents than its capacity on any day, also under simultaneous requests | Built |
+| FR-24.7 | A person's dormitory and room are worked out from their allocations and today's date in the dormitory's time zone | Built |
+| FR-24.8 | An allocation can be ended or, before it starts, cancelled. A resident without a current allocation reads their own history, sees no dormitory content and creates nothing | Built |
+| FR-24.9 | A room's capacity cannot be lowered below the residents already placed | Built |
 | FR-24.10 | Existing free-text dormitory and room names are moved to reference data by a repeatable migration with a dry run and a backup | Built; run on 2026-11-24 with a read-back |
-| FR-24.11 | Only administrators manage reference data | Built; API tests not run yet |
+| FR-24.11 | Only administrators manage reference data | Built |
 
 ## Functional requirements (new modules)
 

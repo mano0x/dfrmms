@@ -352,7 +352,7 @@ describe("dormitories are told apart by their IDs", () => {
   let listingId = "", noticeId = "";
 
   it("FR-24.7: a new report, notice and free item carry the IDs of the resident's dormitory and room", async () => {
-    const report = await call("/api/reports", { method: "POST", cookie: student1, body: { title: `${MARK} Tap drips`, category: "plumbing", urgency: "routine", description: "The tap in the room drips all night.", dormitoryId: DORM_B, roomId: "room-dormitory-b-117" } });
+    const report = await call("/api/reports", { method: "POST", cookie: student1, body: { title: `${MARK} Tap drips`, category: "plumbing", urgency: "normal", description: "The tap in the room drips all night.", dormitoryId: DORM_B, roomId: "room-dormitory-b-117" } });
     expect(report.status).toBe(201);
     createdReports.push(report.data.report.id);
     expect(await row("fault_reports", report.data.report.id)).toMatchObject({ dormitoryId: DORM_A, roomId: "room-dormitory-a-204", dormitory: "Dormitory A", roomNumber: "204" });
