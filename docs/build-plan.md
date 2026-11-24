@@ -2,7 +2,7 @@
 
 Plan for extending DFRMMS from fault reporting into a wider dormitory portal.
 Written 2026-11-21 from the build brief and the owner's answers. **Status:
-approved by the owner on 2026-11-21. A1 is done and approved. A2 is in progress: rules and schema definition are written; everything is written, the existing data is migrated and the API tests pass (2026-11-24). Open: the owner's approval, then a push of the branch.**
+approved by the owner on 2026-11-21. A1 is done and approved. A2 is done and was approved on 2026-11-24 (branch pushed at `a9e7147`). A3 is in progress: pure rules and the schema definition are written; creating the two tables waits for the owner's word, and the owner must create two secrets (O8).**
 
 A new session without the earlier conversation starts here: read this file,
 then continue at the first unticked step. Rules that apply to every step are
@@ -148,8 +148,10 @@ Ideas from the owner are marked "idea 1" to "idea 12".
 
 **A3. Shared server utilities** (FR-29, SEC-11, SEC-13, FR-17, NFR-07)
 
+- [x] Pure rules and unit tests for all of A3 (35 tests in `tests/unit/platform.test.ts`): `lib/security-events.ts`, `lib/rate-limit.ts`, `lib/paging.ts`, `lib/messages/en.ts`, `lib/server/crypto.ts`. Done 2026-11-24.
+- [ ] Tables `security_events` and `rate_limit_places`: defined in the setup script 2026-11-24; `appwrite:check` shown to the owner; creation waits for approval.
 - [ ] Security event log: table `security_events`, one writer, admin viewer, no update or delete route; hashed network address.
-- [ ] Rate limiter: experiment with `incrementRowColumn` under simultaneous calls; otherwise deterministic row IDs. Replace the two read-then-write limits (notices, listings).
+- [ ] Rate limiter: deterministic row IDs in fixed time windows (rules written; `incrementRowColumn` will still be tried once the table exists, as an experiment only). Replace the two read-then-write limits (notices, listings). **Behaviour change to confirm:** "3 in any 24 hours" becomes "3 per UTC day".
 - [ ] `lib/server/crypto.ts`: AES-256-GCM, fresh IV, versioned format, key rotation; unit tests.
 - [ ] Daily job route protected by the cron secret, per the current Vercel documentation; every job idempotent.
 - [ ] Paging helper (25 rows, cursor, server-side filters); retrofit report lists.
@@ -324,5 +326,7 @@ Nothing else is planned. Charts are inline SVG; PDF is the browser's print.
 | 2026-11-24 | A2, after all code: `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build` | 194 of 194 unit tests; lint 0 errors, 5 warnings (all older); type-check passes; build passes |
 | 2026-11-24 | A2: `tests/api/accommodation.test.ts` alone, local built server, live project, approved by the owner | First run: 38 of 43. The 5 failures were one group that started with a request the test itself got wrong (it sent the classification `routine`, which does not exist; the server correctly answered 400). Test input corrected to `normal`; second run: 43 of 43 |
 | 2026-11-24 | A2: `npm run test:api` (all five files) | First full run: 175 of 177. One test in `tests/api/sharing.test.ts` ("a reservation that runs out") timed out after 60 s and the next test depends on it. Cause not established; that file alone then passed 57 of 57. Second full run: **177 of 177** (134 before + 43 new), 338 s |
+| 2026-11-24 | A3 step 1: `npm test` | 229 of 229 (194 before + 35 platform); lint 0 errors; type-check passes |
+| 2026-11-24 | A3: `npm run appwrite:check` on `6afa1cbf000cec97cead` | 193 present, 4 missing (table `security_events` with 10 columns and 5 indexes; table `rate_limit_places` with 3 columns and 1 index); nothing created |
 | 2026-11-24 | A2: row counts after the runs (read-only) | Same as before the runs: 6 reports, 3 history rows, 2 dormitories, 3 room types, 6 rooms, 7 allocations (all active); 0 notices, listings, reservations, notifications and locks; no row named ACC-TEST or API-TEST; the 4 roomless test residents have no allocation and no room text. 16 accounts and profiles (12 before + the 4 new test residents) |
 | 2026-11-24 | A2: browser check of `/admin/accommodation` and the create-user form, signed in as the test administrator, read-only | All four tabs show the migrated data; no sideways scrolling at 360 px; every field has a label. No change was made through the page |

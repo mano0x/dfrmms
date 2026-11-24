@@ -393,6 +393,50 @@ const TABLES = [
     ],
     indexes: [],
   },
+  {
+    // Append-only log of events that matter for security. Written by one
+    // server function; the application has no route that changes or deletes
+    // a row. The type is text, not an enum, so a later module can add an
+    // event type without altering a column; the server accepts only the
+    // types listed in lib/security-events.ts.
+    id: "security_events",
+    name: "Security events",
+    columns: [
+      text("type", 40, true),
+      text("outcome", 10, true),
+      text("actorId", 36),
+      text("actorRole", 20),
+      text("subjectId", 36),
+      text("targetType", 40),
+      text("targetId", 36),
+      text("detail", 300),
+      // A keyed hash of the network address, never the address itself.
+      text("addressHash", 64),
+      date("createdAt", true),
+    ],
+    indexes: [
+      { key: "type", columns: ["type"] },
+      { key: "outcome", columns: ["outcome"] },
+      { key: "actorId", columns: ["actorId"] },
+      { key: "subjectId", columns: ["subjectId"] },
+      { key: "createdAt", columns: ["createdAt"] },
+    ],
+  },
+  {
+    // One row per use of a limit ("at most 3 notices a day"). The row ID is
+    // made from the rule, the person, the time window and a place number, so
+    // the database itself refuses a use beyond the limit, also when requests
+    // arrive at the same moment. Rows are of no use after `expiresAt`; the
+    // retention job removes them.
+    id: "rate_limit_places",
+    name: "Rate limit places",
+    columns: [
+      text("scope", 40, true),
+      date("expiresAt", true),
+      date("createdAt", true),
+    ],
+    indexes: [{ key: "expiresAt", columns: ["expiresAt"] }],
+  },
 ];
 
 const BUCKET = {

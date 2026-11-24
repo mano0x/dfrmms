@@ -114,6 +114,7 @@ requirements. Until then only the prefix exists.
 | SEC-16 | A deactivated account cannot sign in and loses its sessions; starting passwords must be changed | Partly | B7 | A disabled account is refused; there is no way to deactivate one in the application, sessions are not revoked, and no forced change exists. |
 | SEC-17 | Minimal personal data in responses; privacy notice; retention and erasure; processing in the EU | Partly | F1 | Responses are minimal and Appwrite runs in Frankfurt; the rest does not exist. Vercel's function region is not pinned (A1). |
 | SEC-18 | Second factor for staff | To build | F2 | |
+| SEC-19 | Sensitive fields are encrypted with authenticated encryption, bound to their record; keys can be replaced without losing older values | Rules built; nothing uses it yet | A3, first used in C2 | Added on 2026-11-24: the brief asks for this in its section on sensitive data but gave it no ID. Unit-tested in `tests/unit/platform.test.ts`. |
 
 ## Quality requirements
 

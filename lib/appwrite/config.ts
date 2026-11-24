@@ -29,6 +29,8 @@ export const TABLES = {
   rooms: "rooms",
   allocations: "allocations",
   allocationLocks: "allocation_locks",
+  securityEvents: "security_events",
+  limitPlaces: "rate_limit_places",
 } as const;
 
 export const PHOTO_BUCKET_ID = "dormitory-fault-photos";
