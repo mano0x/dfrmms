@@ -9,6 +9,7 @@
 import { Query } from "node-appwrite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { account, call, signIn, tablesDB } from "./helpers";
+import { RUN_STARTED, removeTestEvents } from "./helpers";
 
 const DB = "dfrmms";
 const MARK = "API-TEST";
@@ -263,3 +264,5 @@ describe("rate limit", () => {
     expect((await send(student2, valid)).status).toBe(201);
   });
 });
+// The requests above also wrote entries to the security event log; those are test data too.
+afterAll(() => removeTestEvents(RUN_STARTED));

@@ -11,6 +11,7 @@
 import { createHash } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { Client, Query, TablesDB, Users } from "node-appwrite";
+import { RUN_STARTED, removeTestEvents } from "./helpers";
 
 const BASE = process.env.TEST_BASE_URL ?? "http://localhost:3000";
 const PASSWORD = process.env.TEST_USER_PASSWORD!;
@@ -284,3 +285,5 @@ describe("deployment checks", () => {
     });
   });
 });
+// The requests above also wrote entries to the security event log; those are test data too.
+afterAll(() => removeTestEvents(RUN_STARTED));

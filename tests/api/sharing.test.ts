@@ -10,6 +10,7 @@
 import { Query } from "node-appwrite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { call, signIn, storage, tablesDB } from "./helpers";
+import { RUN_STARTED, removeTestEvents } from "./helpers";
 
 const DB = "dfrmms";
 const BUCKET = "free-item-photos";
@@ -434,3 +435,5 @@ describe("limits", () => {
 it("no response to a resident contains account identifiers", async () => {
   for (const cookie of [owner, third, fourth, otherDorm]) expectNoIdentifiers(await list(cookie));
 });
+// The requests above also wrote entries to the security event log; those are test data too.
+afterAll(() => removeTestEvents(RUN_STARTED));

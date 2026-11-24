@@ -66,3 +66,29 @@ export async function removeTestReports() {
   });
   for (const row of rows) await removeReport(row.$id);
 }
+
+/** When this test file started; entries written to the security event log after it may be test data. */
+export const RUN_STARTED = new Date(Date.now() - 5000).toISOString();
+
+const TEST_ACCOUNT_IDS = [
+  "test-admin", "test-tech1", "test-tech2", "test-student1", "test-student2", "test-student3", "test-student4", "test-lockout",
+  "test-roomless1", "test-roomless2", "test-roomless3", "test-roomless4",
+];
+
+/**
+ * Remove the security events a test file caused: entries written since it
+ * started whose actor is a test account, or that have no actor (a failed
+ * sign-in, a request from another site). The application itself cannot
+ * remove an entry; this uses the server key and exists only for the tests.
+ * On a project that real people use at the same time, an entry without an
+ * actor written by someone else in those minutes would be removed too,
+ * which is one more reason to run the tests on a separate project.
+ */
+export async function removeTestEvents(since: string = RUN_STARTED) {
+  for (;;) {
+    const { rows } = await tablesDB.listRows({ databaseId: "dfrmms", tableId: "security_events", queries: [Query.greaterThan("createdAt", since), Query.limit(100)] });
+    const mine = rows.filter((e) => !e.actorId || TEST_ACCOUNT_IDS.includes(e.actorId) || String(e.actorId) === String(e.subjectId));
+    for (const e of mine) await tablesDB.deleteRow({ databaseId: "dfrmms", tableId: "security_events", rowId: e.$id }).catch(() => {});
+    if (rows.length < 100 || mine.length === 0) return;
+  }
+}

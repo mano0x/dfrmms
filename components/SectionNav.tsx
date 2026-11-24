@@ -18,6 +18,7 @@ const LINKS: Record<Role, { href: string; label: string }[]> = {
     { href: "/admin/neighbour", label: "Neighbour notices" },
     { href: "/admin/free", label: "Free stuff" },
     { href: "/admin/accommodation", label: "Rooms and residents" },
+    { href: "/admin/events", label: "Security events" },
     { href: "/notifications", label: "Notifications" },
   ],
   // Technicians work only with fault reports, so they have a single section.

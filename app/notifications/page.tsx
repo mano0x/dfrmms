@@ -7,6 +7,9 @@ import {
   announceInboxChange, fetchInbox, markAllNotificationsRead, markNotificationRead, type Inbox,
 } from "@/lib/community";
 import { errorMessage, formatDateTime } from "@/lib/reports";
+import { fetchOwnEvents } from "@/lib/events";
+import { message } from "@/lib/messages/en";
+import { SECURITY_EVENT_LABEL, type OwnSecurityEventView, type SecurityEventType } from "@/lib/security-events";
 import { Alert, AppShell, Card, EmptyState, LoadingScreen, PageHeader, btn, cx } from "@/components/ui";
 
 export default function NotificationsPage() {
@@ -14,6 +17,7 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [inbox, setInbox] = useState<Inbox | null>(null);
   const [error, setError] = useState("");
+  const [ownEvents, setOwnEvents] = useState<OwnSecurityEventView[] | null>(null);
 
   useEffect(() => {
     if (!loading && (!user || !role)) router.push("/");
@@ -25,6 +29,8 @@ export default function NotificationsPage() {
     fetchInbox()
       .then((box) => active && setInbox(box))
       .catch(() => active && setError("Your notifications could not be loaded. Please refresh the page."));
+    // When special access was used to look at this person's data. A failure here only hides the section.
+    fetchOwnEvents().then((list) => active && setOwnEvents(list)).catch(() => {});
     return () => {
       active = false;
     };
@@ -91,6 +97,26 @@ export default function NotificationsPage() {
             </div>
           ))}
         </Card>
+      )}
+
+      {ownEvents && (
+        <section aria-labelledby="own-events" className="mt-10">
+          <h2 id="own-events" className="text-base font-semibold text-ink">{message("events.own.title")}</h2>
+          <p className="mt-1 text-sm text-muted">An administrator must give a reason before looking at certain data about you. Each time is listed here.</p>
+          {ownEvents.length === 0 ? (
+            <p className="mt-4 text-sm text-ink-2">{message("events.own.empty")}</p>
+          ) : (
+            <Card className="mt-4 divide-y divide-line">
+              {ownEvents.map((e) => (
+                <div key={e.id} className="px-5 py-4">
+                  <p className="text-sm font-medium text-ink">{SECURITY_EVENT_LABEL[e.type as SecurityEventType] ?? e.type}</p>
+                  <p className="mt-0.5 break-words text-sm text-ink-2">{e.by}. {e.detail}</p>
+                  <p className="mt-1 text-xs text-muted">{formatDateTime(e.createdAt)}</p>
+                </div>
+              ))}
+            </Card>
+          )}
+        </section>
       )}
     </AppShell>
   );

@@ -11,6 +11,7 @@ import { Query } from "node-appwrite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { today } from "../../lib/accommodation";
 import { account, call, removeReport, signIn, tablesDB, users } from "./helpers";
+import { RUN_STARTED, removeTestEvents } from "./helpers";
 
 const DB = "dfrmms";
 const MARK = "ACC-TEST";
@@ -459,3 +460,5 @@ describe("creating a resident with a room", () => {
     expect((await all("allocations", [Query.equal("residentId", res.data.user.id)])).length).toBe(0);
   });
 });
+// The requests above also wrote entries to the security event log; those are test data too.
+afterAll(() => removeTestEvents(RUN_STARTED));

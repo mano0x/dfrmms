@@ -7,6 +7,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { call, removePhoto, removeReport, removeTestReports, signIn, users } from "./helpers";
+import { RUN_STARTED, removeTestEvents } from "./helpers";
 
 let student1 = "", student2 = "", tech1 = "", tech2 = "", admin = "";
 const createdReports: string[] = [];
@@ -314,3 +315,5 @@ describe("names follow the sign-in account", () => {
     expect((await call("/api/auth/me", { cookie: tech2 })).data.user.name).toBe("Technician Renamed");
   });
 });
+// The requests above also wrote entries to the security event log; those are test data too.
+afterAll(() => removeTestEvents(RUN_STARTED));
