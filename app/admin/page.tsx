@@ -3,13 +3,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { fetchAccommodation } from "@/lib/rooms";
+import { useReportList } from "@/lib/useReportList";
 import { useAuth } from "@/lib/AuthContext";
 import {
-  allowedNextStatuses, firstError, isOverdue, newUserSchema, priorityForClassification,
+  allowedNextStatuses, firstError, newUserSchema, priorityForClassification,
   type Priority, type Status,
 } from "@/lib/maintenance";
 import {
-  assignTechnician, changeStatus, errorMessage, fetchReports, formatDate, formatDateTime, overridePriority, photoUrl, toDate,
+  assignTechnician, changeStatus, errorMessage, formatDate, formatDateTime, overridePriority, photoUrl, toDate,
   type Report,
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
@@ -41,7 +42,6 @@ const tableSelect =
 export default function AdminDashboard() {
   const { user, role, loading, signOut } = useAuth();
   const router = useRouter();
-  const [reports, setReports] = useState<Report[]>([]);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [activeTab, setActiveTab] = useState<"reports" | "users" | "create-user">("reports");
   const [search, setSearch] = useState("");
@@ -50,6 +50,20 @@ export default function AdminDashboard() {
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+
+  // The list is searched, filtered and cut into pages on the server. Typing waits a moment before it searches.
+  const [appliedSearch, setAppliedSearch] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedSearch(search.trim().length >= 2 ? search.trim() : ""), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const list = useReportList(!!user && role === "admin", {
+    status: filterStatus === "all" ? undefined : (filterStatus as Status),
+    priority: filterPriority === "all" ? undefined : (filterPriority as Priority),
+    overdue: overdueOnly ? "1" : undefined,
+    q: appliedSearch || undefined,
+  });
+  const reports = list.reports;
 
   // Report actions
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -77,13 +91,11 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      // Both lists come from server routes that only answer administrators.
-      const [reportList, userList, accommodation] = await Promise.all([
-        fetchReports(),
+      // Both come from server routes that only answer administrators.
+      const [userList, accommodation] = await Promise.all([
         api<{ users: UserRecord[] }>("/api/users"),
         fetchAccommodation(),
       ]);
-      setReports(reportList);
       setUsers(userList.users);
       const dormitoryName = new Map(accommodation.dormitories.map((d) => [d.id, d.name]));
       setRoomOptions(
@@ -112,7 +124,7 @@ export default function AdminDashboard() {
     setActionError("");
     try {
       const updated = await action();
-      setReports((prev) => prev.map((r) => (r.id === reportId ? updated : r)));
+      list.replace(updated);
       setHistoryVersion((v) => v + 1);
       return true;
     } catch (err) {
@@ -168,28 +180,16 @@ export default function AdminDashboard() {
 
   const technicians = users.filter((u) => u.role === "technician");
   const createdDate = (r: Report): Date | null => toDate(r.createdAt);
-  const overdue = (r: Report) => isOverdue(createdDate(r), r.priority, r.status);
 
   // The select needs an ID; reports assigned before IDs were stored only have a name.
   const assignedTechId = (r: Report) =>
     r.assignedToId || technicians.find((t) => t.name === r.assignedTo)?.id || "";
 
-  const filtered = reports.filter((r) => {
-    const matchSearch =
-      r.title?.toLowerCase().includes(search.toLowerCase()) ||
-      r.studentName?.toLowerCase().includes(search.toLowerCase()) ||
-      r.roomNumber?.includes(search);
-    const matchStatus = filterStatus === "all" || r.status === filterStatus;
-    const matchPriority = filterPriority === "all" || r.priority === filterPriority;
-    return matchSearch && matchStatus && matchPriority && (!overdueOnly || overdue(r));
-  });
+  // The server has already applied the search and the filters.
+  const filtered = reports;
 
-  const stats = {
-    total: reports.length,
-    open: reports.filter((r) => r.status === "open").length,
-    inProgress: reports.filter((r) => r.status === "in-progress").length,
-    overdue: reports.filter(overdue).length,
-  };
+  // Counts over all reports, from the server, whatever filter is set.
+  const stats = { total: list.summary.total, open: list.summary.open, inProgress: list.summary.inProgress, overdue: list.summary.overdue };
 
   const selected = reports.find((r) => r.id === selectedId) ?? null;
 
@@ -201,11 +201,11 @@ export default function AdminDashboard() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selectedId]);
 
-  if (loading || dataLoading) {
+  if (loading || dataLoading || list.loading) {
     return <LoadingScreen label="Loading the admin console…" />;
   }
 
-  const unassigned = reports.filter((r) => !r.assignedTo && r.status === "open").length;
+  const unassigned = list.summary.unassignedOpen;
   const filtersActive = search || filterStatus !== "all" || filterPriority !== "all" || overdueOnly;
 
   const statusOptions = (r: Report) => [r.status, ...allowedNextStatuses("admin", r.status)];
@@ -242,9 +242,9 @@ export default function AdminDashboard() {
         ]}
       />
 
-      {loadError && (
+      {(loadError || list.error) && (
         <div className="mb-5">
-          <Alert tone="error">{loadError}</Alert>
+          <Alert tone="error">{loadError || list.error}</Alert>
         </div>
       )}
 
@@ -375,8 +375,13 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-            <div className="border-t border-line px-4 py-2.5 text-xs text-muted">
-              Showing {filtered.length} of {reports.length} reports
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-xs text-muted">
+              <span>
+                Showing {filtered.length} {filtersActive ? `matching report${filtered.length === 1 ? "" : "s"}` : `of ${stats.total} reports`}, newest first
+              </span>
+              {list.nextCursor && (
+                <button type="button" className={btn.secondary} disabled={list.loadingMore} onClick={list.loadMore}>Show older reports</button>
+              )}
             </div>
           </Card>
         </div>

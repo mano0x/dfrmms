@@ -1,13 +1,25 @@
-import { handle, ok, readJson } from "@/lib/server/http";
+import { HttpError, handle, ok, readJson } from "@/lib/server/http";
 import { requireCaller } from "@/lib/server/session";
-import { createReport, listReports } from "@/lib/server/reports";
+import { createReport, listReports, summarise } from "@/lib/server/reports";
+import { parsePageQuery } from "@/lib/paging";
+import { REPORT_FILTER_KEYS } from "@/lib/report-list";
 
-/** Reports the caller may see: a resident's own reports, or all reports for staff. */
+/**
+ * One page of the reports the caller may see: a resident's own reports, or
+ * all reports for staff. Newest first, 25 to a page.
+ * Query: status, priority, overdue=1, assigned=me|none, q, cursor, limit;
+ * only=summary returns just the counts.
+ */
 export async function GET(request: Request) {
   return handle(async () => {
     const guard = await requireCaller(request, ["student", "technician", "admin"]);
     if (guard.response) return guard.response;
-    return ok({ reports: await listReports(guard.caller) });
+    const params = new URL(request.url).searchParams;
+    if (params.get("only") === "summary") return ok({ summary: await summarise(guard.caller) });
+    const page = parsePageQuery(params);
+    if (!page.ok) throw new HttpError(400, page.error);
+    const filter = Object.fromEntries(REPORT_FILTER_KEYS.flatMap((key) => (params.get(key) ? [[key, params.get(key)]] : [])));
+    return ok(await listReports(guard.caller, filter, page.query));
   });
 }
 

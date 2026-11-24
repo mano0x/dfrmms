@@ -2,9 +2,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
-import { allowedNextStatuses, isAssignedTo, isOverdue, type Status } from "@/lib/maintenance";
+import { allowedNextStatuses, isAssignedTo, type Status } from "@/lib/maintenance";
+import { useReportList } from "@/lib/useReportList";
 import {
-  changeStatus, errorMessage, fetchReports, formatDate, photoUrl, saveResolutionNote, toDate, type Report,
+  changeStatus, errorMessage, formatDate, photoUrl, saveResolutionNote, toDate, type Report,
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
 import {
@@ -15,8 +16,6 @@ import {
 export default function TechnicianDashboard() {
   const { user, role, loading, signOut } = useAuth();
   const router = useRouter();
-  const [reports, setReports] = useState<Report[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"assigned" | "all">("assigned");
   const [filterStatus, setFilterStatus] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -24,7 +23,15 @@ export default function TechnicianDashboard() {
   const [saving, setSaving] = useState<string | null>(null);
   const [actionError, setActionError] = useState<{ id: string; message: string } | null>(null);
   const [historyVersion, setHistoryVersion] = useState(0);
-  const [loadError, setLoadError] = useState("");
+
+  // The list is filtered and cut into pages on the server.
+  const list = useReportList(!!user && role === "technician", {
+    assigned: activeTab === "assigned" ? "me" : undefined,
+    status: filterStatus === "all" ? undefined : (filterStatus as Status),
+  });
+  const reports = list.reports;
+  const dataLoading = list.loading;
+  const loadError = list.error;
 
   // Name and specialization come from the signed-in user's profile.
   const userProfile = user;
@@ -33,31 +40,13 @@ export default function TechnicianDashboard() {
     if (!loading && (!user || role !== "technician")) router.push("/");
   }, [user, role, loading, router]);
 
-  const fetchData = async () => {
-    try {
-      const list = await fetchReports();
-      setReports(list);
-      setLoadError("");
-    } catch (err) {
-      console.error("Could not load reports:", err);
-      setLoadError("The reports could not be loaded. Please refresh the page.");
-    } finally {
-      setDataLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data once after sign-in; state is only set after the request finishes
-    if (user && role === "technician") fetchData();
-  }, [user, role]);
-
   // Run one change on a report, showing a message on that report if it fails.
   const run = async (reportId: string, action: () => Promise<Report>) => {
     setSaving(reportId);
     setActionError(null);
     try {
       const updated = await action();
-      setReports((prev) => prev.map((r) => (r.id === reportId ? updated : r)));
+      list.replace(updated);
       setHistoryVersion((v) => v + 1);
       return true;
     } catch (err) {
@@ -79,30 +68,21 @@ export default function TechnicianDashboard() {
   };
 
   const me = { uid: user?.uid, name: user?.name };
-  const assignedReports = reports.filter((r) => isAssignedTo(r, me));
-
-  const displayReports =
-    activeTab === "assigned" ? assignedReports : reports;
-
-  const filtered = displayReports.filter(
-    (r) => filterStatus === "all" || r.status === filterStatus
-  );
+  // The server has already applied the tab and the status filter.
+  const filtered = reports;
 
   const createdDate = (r: Report): Date | null => toDate(r.createdAt);
 
-  const stats = {
-    assigned: assignedReports.length,
-    inProgress: assignedReports.filter((r) => r.status === "in-progress").length,
-    resolved: assignedReports.filter((r) => r.status === "resolved").length,
-    overdue: assignedReports.filter((r) => isOverdue(createdDate(r), r.priority, r.status)).length,
-  };
+  // Counts over all the technician's assignments, from the server, whatever filter is set.
+  const mine = list.summary.mine ?? { total: 0, open: 0, inProgress: 0, resolved: 0, overdue: 0 };
+  const stats = { assigned: mine.total, inProgress: mine.inProgress, resolved: mine.resolved, overdue: mine.overdue };
 
   if (loading || dataLoading) {
     return <LoadingScreen label="Loading your work queue…" />;
   }
 
   const displayName = userProfile?.name || user?.email || "Technician";
-  const active = assignedReports.filter((r) => r.status === "open" || r.status === "in-progress").length;
+  const active = mine.open + mine.inProgress;
 
   return (
     <AppShell
@@ -140,8 +120,8 @@ export default function TechnicianDashboard() {
           active={activeTab}
           onChange={setActiveTab}
           tabs={[
-            { value: "assigned", label: "My assignments", icon: <Icon.Wrench width={16} height={16} />, count: assignedReports.length },
-            { value: "all", label: "All reports", icon: <Icon.Clipboard width={16} height={16} />, count: reports.length },
+            { value: "assigned", label: "My assignments", icon: <Icon.Wrench width={16} height={16} />, count: stats.assigned },
+            { value: "all", label: "All reports", icon: <Icon.Clipboard width={16} height={16} />, count: list.summary.total },
           ]}
         />
         <select
@@ -171,7 +151,7 @@ export default function TechnicianDashboard() {
           {filtered.map((r) => {
             const open = expandedId === r.id;
             const busy = saving === r.id;
-            const mine = isAssignedTo(r, me);
+            const assignedToMe = isAssignedTo(r, me);
             const nextStatuses = allowedNextStatuses("technician", r.status);
             return (
               <li
@@ -249,7 +229,7 @@ export default function TechnicianDashboard() {
                     <div className="space-y-5">
                       {actionError?.id === r.id && <Alert tone="error">{actionError.message}</Alert>}
 
-                      {!mine ? (
+                      {!assignedToMe ? (
                         <Alert tone="info">
                           {r.assignedTo
                             ? `This report is assigned to ${r.assignedTo}. Only the assigned technician can update it.`
@@ -326,6 +306,11 @@ export default function TechnicianDashboard() {
             );
           })}
         </ul>
+      )}
+      {list.nextCursor && (
+        <div className="mt-4 text-center">
+          <button type="button" className={btn.secondary} disabled={list.loadingMore} onClick={list.loadMore}>Show older reports</button>
+        </div>
       )}
     </AppShell>
   );

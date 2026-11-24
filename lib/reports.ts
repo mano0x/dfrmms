@@ -5,14 +5,28 @@
  */
 import { ApiError, api } from "./api";
 import { prepareImage } from "./image-client";
-import type { HistoryDTO, ReportDTO } from "./server/reports"; // types only - no server code is bundled
+import type { HistoryDTO, ReportDTO, ReportPage } from "./server/reports"; // types only - no server code is bundled
+import type { ReportFilter, ReportSummary } from "./report-list";
 
 export type Report = ReportDTO;
 export type LogEntry = HistoryDTO;
 
 export type ReportInput = { title: string; category: string; urgency: string; description: string; photoFileId?: string | null };
 
-export const fetchReports = async () => (await api<{ reports: Report[] }>("/api/reports")).reports;
+export type ReportListFilter = ReportFilter;
+export type ReportCounts = ReportSummary;
+
+/** One page of reports, filtered on the server. Empty filter values are left out. */
+export function fetchReportPage(filter: ReportListFilter, cursor: string | null): Promise<ReportPage> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filter)) if (value) params.set(key, String(value));
+  if (cursor) params.set("cursor", cursor);
+  const query = params.toString();
+  return api<ReportPage>(`/api/reports${query ? `?${query}` : ""}`);
+}
+
+/** The counts shown in a page's headings, over everything the user may see. */
+export const fetchReportCounts = async () => (await api<{ summary: ReportCounts }>("/api/reports?only=summary")).summary;
 
 export const createReport = async (input: ReportInput) =>
   (await api<{ report: Report }>("/api/reports", { method: "POST", body: input })).report;

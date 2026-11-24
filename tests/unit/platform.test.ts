@@ -283,3 +283,39 @@ describe("one request at a time per person", () => {
     expect(limitLockIsStale(new Date(now.getTime() - LIMIT_LOCK_STALE_MS - 1).toISOString(), now)).toBe(true);
   });
 });
+
+describe("the list of fault reports", () => {
+  it("FR-17: the filter accepts known statuses and priorities, the overdue mark and a search text", async () => {
+    const { reportFilterSchema } = await import("../../lib/report-list");
+    expect(reportFilterSchema.safeParse({}).success).toBe(true);
+    expect(reportFilterSchema.safeParse({ status: "open", priority: "high", overdue: "1", assigned: "none", q: "lamp" }).success).toBe(true);
+    for (const bad of [{ status: "lost" }, { priority: "huge" }, { overdue: "yes" }, { assigned: "everyone" }, { q: "a" }, { q: "x".repeat(61) }]) {
+      expect(reportFilterSchema.safeParse(bad).success, JSON.stringify(bad)).toBe(false);
+    }
+    expect(reportFilterSchema.parse({ q: "  lamp  " }).q).toBe("lamp");
+  });
+  it("FR-17: only a technician lists the reports assigned to them, and only staff the unassigned ones", async () => {
+    const { filterProblem } = await import("../../lib/report-list");
+    expect(filterProblem(tomas, { assigned: "me" })).toBeNull();
+    expect(filterProblem(admin, { assigned: "me" })).toMatch(/technicians/);
+    expect(filterProblem(jonas, { assigned: "me" })).toMatch(/technicians/);
+    expect(filterProblem(admin, { assigned: "none" })).toBeNull();
+    expect(filterProblem(tomas, { assigned: "none" })).toBeNull();
+    expect(filterProblem(jonas, { assigned: "none" })).toMatch(/staff/);
+    expect(filterProblem(jonas, { status: "open", q: "lamp" })).toBeNull();
+  });
+  it("FR-17: overdue is searched with the same target times as the rule for one report", async () => {
+    const { overdueCutoffs } = await import("../../lib/report-list");
+    const { isOverdue, PRIORITY_VALUES } = await import("../../lib/maintenance");
+    const now = new Date("2026-11-25T12:00:00.000Z");
+    const cutoffs = overdueCutoffs(now);
+    expect(cutoffs).toEqual({ critical: "2026-11-25T08:00:00.000Z", high: "2026-11-24T12:00:00.000Z", medium: "2026-11-22T12:00:00.000Z", low: "2026-11-18T12:00:00.000Z" });
+    for (const priority of PRIORITY_VALUES) {
+      const cutoff = new Date(cutoffs[priority]).getTime();
+      // Created just before the cutoff: overdue. Created exactly at it or after: not yet.
+      expect(isOverdue(new Date(cutoff - 1), priority, "open", now), priority).toBe(true);
+      expect(isOverdue(new Date(cutoff), priority, "open", now), priority).toBe(false);
+      expect(isOverdue(new Date(cutoff + 1), priority, "in-progress", now), priority).toBe(false);
+    }
+  });
+});

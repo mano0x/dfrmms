@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { canEditReport as mayEdit } from "@/lib/access";
-import { firstError, priorityForClassification, reportInputSchema, validatePhoto } from "@/lib/maintenance";
+import { firstError, priorityForClassification, reportInputSchema, validatePhoto, type Status } from "@/lib/maintenance";
+import { useReportList } from "@/lib/useReportList";
 import {
-  createReport, editReport, errorMessage, fetchReports, formatDate, formatDateTime, photoUrl, toDate, uploadPhoto,
+  createReport, editReport, errorMessage, formatDate, formatDateTime, photoUrl, toDate, uploadPhoto,
   type Report,
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
@@ -64,11 +65,8 @@ export default function StudentDashboard() {
   const { user, role, loading, signOut } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"submit" | "history">("submit");
-  const [reports, setReports] = useState<Report[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
-  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Form fields
   const [title, setTitle] = useState("");
@@ -94,24 +92,11 @@ export default function StudentDashboard() {
     if (!loading && (!user || role !== "student")) router.push("/");
   }, [user, role, loading, router]);
 
-  const fetchData = async () => {
-    try {
-      // The server returns only this resident's own reports, newest first.
-      const list = await fetchReports();
-      setReports(list);
-      setFetchError(null);
-    } catch (err) {
-      console.error("Could not load reports:", err);
-      setFetchError("Your reports could not be loaded. Please refresh the page.");
-    } finally {
-      setDataLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data once after sign-in; state is only set after the request finishes
-    if (user && role === "student") fetchData();
-  }, [user, role]);
+  // The server returns only this resident's own reports, newest first, one page at a time, with the status filter applied there.
+  const list = useReportList(!!user && role === "student", { status: filterStatus === "all" ? undefined : (filterStatus as Status) });
+  const reports = list.reports;
+  const dataLoading = list.loading;
+  const fetchError = list.error;
 
   const handleSubmit = async () => {
     const parsed = reportInputSchema.safeParse({ title, category, urgency, description });
@@ -129,7 +114,7 @@ export default function StudentDashboard() {
       setSuccessMsg("✓ Report submitted successfully!");
       setTitle(""); setCategory("electrical"); setUrgency("normal");
       setDescription(""); setPhoto(null);
-      fetchData();
+      list.reload();
       setTimeout(() => setActiveTab("history"), 1500);
     } catch (err) {
       setSuccessMsg(`❌ ${errorMessage(err, "Submission failed. Please try again.")}`);
@@ -173,9 +158,7 @@ export default function StudentDashboard() {
         ...parsed.data,
         ...(newPhotoId ? { photoFileId: newPhotoId } : {}),
       });
-      setReports((current) =>
-        current.map((report) => report.id === selectedReport.id ? updatedReport : report)
-      );
+      list.replace(updatedReport);
       setSelectedReport(updatedReport);
       setEditing(false);
       setEditPhoto(null);
@@ -187,16 +170,12 @@ export default function StudentDashboard() {
     }
   };
 
-  const filtered = reports.filter(
-    (r) => filterStatus === "all" || r.status === filterStatus
-  );
+  // The server has already applied the status filter.
+  const filtered = reports;
 
-  const stats = {
-    total: reports.length,
-    open: reports.filter((r) => r.status === "open").length,
-    inProgress: reports.filter((r) => r.status === "in-progress").length,
-    resolved: reports.filter((r) => r.status === "resolved").length,
-  };
+  // Counts over all of the resident's reports, from the server, whatever filter is set.
+  const stats = { total: list.summary.total, open: list.summary.open, inProgress: list.summary.inProgress, resolved: list.summary.resolved };
+  const countByStatus: Record<string, number> = { all: list.summary.total, open: list.summary.open, "in-progress": list.summary.inProgress, resolved: list.summary.resolved, closed: list.summary.closed };
 
   // Close the details dialog with Escape
   useEffect(() => {
@@ -262,7 +241,7 @@ export default function StudentDashboard() {
           onChange={setActiveTab}
           tabs={[
             { value: "submit", label: "Report a fault", icon: <Icon.Plus width={16} height={16} /> },
-            { value: "history", label: "My reports", icon: <Icon.Clipboard width={16} height={16} />, count: reports.length },
+            { value: "history", label: "My reports", icon: <Icon.Clipboard width={16} height={16} />, count: stats.total },
           ]}
         />
       </div>
@@ -359,7 +338,7 @@ export default function StudentDashboard() {
           <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter by status">
             {[{ value: "all", label: "All" }, ...STATUSES].map((s) => {
               const on = filterStatus === s.value;
-              const n = s.value === "all" ? reports.length : reports.filter((r) => r.status === s.value).length;
+              const n = countByStatus[s.value] ?? 0;
               return (
                 <button
                   key={s.value}
@@ -379,10 +358,10 @@ export default function StudentDashboard() {
 
           {filtered.length === 0 ? (
             <EmptyState
-              title={reports.length === 0 ? "No reports yet" : "Nothing matches this filter"}
-              body={reports.length === 0 ? "When something in your room breaks, report it here and follow its progress." : "Try a different status."}
+              title={stats.total === 0 ? "No reports yet" : "Nothing matches this filter"}
+              body={stats.total === 0 ? "When something in your room breaks, report it here and follow its progress." : "Try a different status."}
               action={
-                reports.length === 0 && (
+                stats.total === 0 && (
                   <button onClick={() => setActiveTab("submit")} className={btn.primary}>
                     <Icon.Plus width={16} height={16} /> Submit your first report
                   </button>
@@ -426,6 +405,11 @@ export default function StudentDashboard() {
                 </li>
               ))}
             </ul>
+          )}
+          {list.nextCursor && (
+            <div className="mt-4 text-center">
+              <button type="button" className={btn.secondary} disabled={list.loadingMore} onClick={list.loadMore}>Show older reports</button>
+            </div>
           )}
         </div>
       )}

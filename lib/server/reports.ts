@@ -22,6 +22,9 @@ import { currentNames } from "./names";
 import { withCurrentNames } from "../names";
 import { HttpError } from "./http";
 import { inTransaction } from "./transaction";
+import { rowsToFetch, toPage, type PageQuery } from "../paging";
+import { EMPTY_SUMMARY, filterProblem, overdueCutoffs, reportFilterSchema, type ReportFilter, type ReportSummary } from "../report-list";
+import { PRIORITY_VALUES } from "../maintenance";
 
 
 export type ReportDTO = {
@@ -134,13 +137,87 @@ async function change(report: ReportDTO, actor: Actor, data: Record<string, unkn
 /* Reading                                                             */
 /* ------------------------------------------------------------------ */
 
-export async function listReports(actor: Actor): Promise<ReportDTO[]> {
-  const queries = [Query.orderDesc("createdAt"), Query.limit(500)];
-  // A resident's query is limited to their own reports in the database itself.
-  if (actor.role === "student") queries.push(Query.equal("studentId", actor.id));
-  const { rows } = await adminServices().tablesDB.listRows({ ...reportTable, queries });
-  const names = await currentNames();
-  return rows.map(toReport).filter((r) => canViewReport(actor, r)).map((r) => withCurrentNames(r, names));
+/** What the caller may see at all. A resident's list is limited to their own reports in the database itself. */
+const scopeOf = (actor: Actor): string[] => (actor.role === "student" ? [Query.equal("studentId", actor.id)] : []);
+
+/** Assigned to this technician: by account ID, or by name for reports assigned before IDs were stored (as isAssignedTo). */
+const assignedTo = (actor: Actor): string =>
+  Query.or([Query.equal("assignedToId", actor.id), Query.and([Query.isNull("assignedToId"), Query.equal("assignedTo", actor.name)])]);
+
+/** Still active after the target time of its priority. */
+function overdueQueries(now: Date): string[] {
+  const cutoffs = overdueCutoffs(now);
+  return [
+    Query.equal("status", ["open", "in-progress"]),
+    Query.or(PRIORITY_VALUES.map((p) => Query.and([Query.equal("priority", p), Query.lessThan("createdAt", cutoffs[p])]))),
+  ];
+}
+
+function filterQueries(actor: Actor, filter: ReportFilter, now: Date): string[] {
+  return [
+    ...(filter.status ? [Query.equal("status", filter.status)] : []),
+    ...(filter.priority ? [Query.equal("priority", filter.priority)] : []),
+    ...(filter.overdue ? overdueQueries(now) : []),
+    ...(filter.assigned === "me" ? [assignedTo(actor)] : []),
+    ...(filter.assigned === "none" ? [Query.equal("status", "open"), Query.isNull("assignedTo"), Query.isNull("assignedToId")] : []),
+    ...(filter.q ? [Query.or([Query.contains("title", filter.q), Query.contains("studentName", filter.q), Query.contains("roomNumber", filter.q)])] : []),
+  ];
+}
+
+/** How many reports match, counted by the database. */
+async function count(queries: string[]): Promise<number> {
+  return (await adminServices().tablesDB.listRows({ ...reportTable, queries: [...queries, Query.limit(1)] })).total;
+}
+
+/** Counts over everything the caller may see, whatever filter is set. */
+export async function summarise(actor: Actor, now: Date = new Date()): Promise<ReportSummary> {
+  const scope = scopeOf(actor);
+  const status = (value: string, extra: string[] = []) => count([...scope, ...extra, Query.equal("status", value)]);
+  const staff = actor.role !== "student";
+  const mine = actor.role === "technician" ? [assignedTo(actor)] : null;
+  const [open, inProgress, resolved, closed, overdue, unassignedOpen, myTotal, myOpen, myInProgress, myResolved, myOverdue] = await Promise.all([
+    status("open"), status("in-progress"), status("resolved"), status("closed"),
+    count([...scope, ...overdueQueries(now)]),
+    staff ? count([Query.equal("status", "open"), Query.isNull("assignedTo"), Query.isNull("assignedToId")]) : 0,
+    mine ? count(mine) : 0, mine ? status("open", mine) : 0, mine ? status("in-progress", mine) : 0, mine ? status("resolved", mine) : 0, mine ? count([...mine, ...overdueQueries(now)]) : 0,
+  ]);
+  return {
+    ...EMPTY_SUMMARY, total: open + inProgress + resolved + closed, open, inProgress, resolved, closed, overdue, unassignedOpen,
+    mine: mine ? { total: myTotal, open: myOpen, inProgress: myInProgress, resolved: myResolved, overdue: myOverdue } : null,
+  };
+}
+
+export type ReportPage = { reports: ReportDTO[]; nextCursor: string | null; summary: ReportSummary | null };
+
+/**
+ * One page of the reports the caller may see, newest first, filtered in the
+ * database. The first page also carries the counts for the page's headings.
+ */
+export async function listReports(actor: Actor, filterInput: unknown, page: PageQuery): Promise<ReportPage> {
+  const parsed = reportFilterSchema.safeParse(filterInput);
+  if (!parsed.success) throw new HttpError(400, firstError(parsed));
+  const problem = filterProblem(actor, parsed.data);
+  if (problem) throw new HttpError(400, problem);
+
+  const now = new Date();
+  const queries = [
+    ...scopeOf(actor), ...filterQueries(actor, parsed.data, now),
+    Query.orderDesc("createdAt"), Query.orderDesc("$id"),
+    ...(page.cursor ? [Query.cursorAfter(page.cursor)] : []),
+    Query.limit(rowsToFetch(page.limit)),
+  ];
+  let rows;
+  try {
+    rows = (await adminServices().tablesDB.listRows({ ...reportTable, queries })).rows;
+  } catch (err) {
+    // A cursor that names no row is a bad request, not a server fault.
+    if (page.cursor && (err as { code?: number })?.code === 400) throw new HttpError(400, "Invalid page reference.");
+    throw err;
+  }
+  const [names, summary] = await Promise.all([currentNames(), page.cursor ? null : summarise(actor, now)]);
+  // The rule is applied again to every row, whatever the query returned.
+  const cut = toPage(rows.map(toReport).filter((r) => canViewReport(actor, r)), page.limit);
+  return { reports: cut.items.map((r) => withCurrentNames(r, names)), nextCursor: cut.nextCursor, summary };
 }
 
 /** A single report as sent to the pages: with the people's current names. */
