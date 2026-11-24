@@ -20,6 +20,9 @@ import { HttpError } from "./http";
 
 const table = { databaseId: DATABASE_ID, tableId: TABLES.securityEvents };
 
+/** How long a request waits for its own log entry before it goes on without the confirmation. */
+const EVENT_WRITE_WAIT_MS = 3000;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const toEvent = (row: any): StoredSecurityEvent => ({
   id: row.$id, type: row.type, outcome: row.outcome, actorId: row.actorId ?? null, actorRole: row.actorRole ?? null, subjectId: row.subjectId ?? null,
@@ -61,6 +64,7 @@ export function addressHashOf(request: Request | undefined): string | null {
  * fails the change. Without one, the entry is written on its own, and a
  * failure is reported in the server log and does not stop the request,
  * because refusing a sign-in must not depend on the log being available.
+ * For the same reason the request waits at most three seconds for it.
  */
 export async function recordEvent(event: NewSecurityEvent, request?: Request, transactionId?: string): Promise<void> {
   const data = eventFields(event, new Date(), addressHashOf(request));
@@ -69,7 +73,15 @@ export async function recordEvent(event: NewSecurityEvent, request?: Request, tr
     await write;
     return;
   }
-  await write.catch((err) => console.error("A security event could not be written:", event.type, (err as { type?: string })?.type ?? "unknown error"));
+  // The request does not wait for the log for long: a slow connection to the database must not hold up a refusal.
+  const written = write.then(() => true).catch((err) => {
+    console.error("A security event could not be written:", event.type, (err as { type?: string })?.type ?? "unknown error");
+    return true;
+  });
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const gaveUp = new Promise<false>((resolve) => { timer = setTimeout(() => resolve(false), EVENT_WRITE_WAIT_MS); });
+  if (!(await Promise.race([written, gaveUp]))) console.error("A security event was not confirmed in time:", event.type);
+  clearTimeout(timer);
 }
 
 /** One page of the log, newest first, for administrators. */
