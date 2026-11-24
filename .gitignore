@@ -49,3 +49,6 @@ migration-data/
 
 # Backups written by scripts before they change rows (may hold personal data; local only)
 migration-backups/
+
+# Local tool settings
+.claude/

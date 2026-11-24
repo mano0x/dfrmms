@@ -15,7 +15,7 @@ type Tab = "allocations" | "rooms" | "dormitories" | "types";
 const STATE_LABEL: Record<AllocationState, string> = { current: "Living there now", upcoming: "Not started yet", past: "Ended", cancelled: "Cancelled" };
 
 const th = "px-3 py-3 font-medium first:pl-5 last:pr-5";
-const td = "px-3 py-3 text-ink-2 first:pl-5 last:pr-5";
+const td = "px-3 py-3 text-ink-2 first:pl-5 last:pr-5 [&_button]:whitespace-nowrap [&_span]:whitespace-nowrap";
 const tableCls = "w-full text-left text-sm";
 const headCls = "border-b border-line text-xs uppercase tracking-wide text-muted";
 
@@ -246,7 +246,7 @@ export default function AdminAccommodationPage() {
 
       {tab === "allocations" && (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="p-5 lg:col-span-1">
+          <Card className="min-w-0 p-5 lg:col-span-1">
             <h2 className="mb-4 text-base font-semibold text-ink">Give a resident a room</h2>
             <form
               className="grid gap-4"
@@ -296,7 +296,7 @@ export default function AdminAccommodationPage() {
             </form>
           </Card>
 
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-base font-semibold text-ink">Allocations</h2>
               <label htmlFor="alloc-all" className="flex items-center gap-2 text-sm text-ink-2">
@@ -316,7 +316,7 @@ export default function AdminAccommodationPage() {
                       <th className={th}>First day</th>
                       <th className={th}>Last day</th>
                       <th className={th}>State</th>
-                      <th className={th}><span className="sr-only">Actions</span></th>
+                      <th className={th} aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -369,7 +369,7 @@ export default function AdminAccommodationPage() {
 
       {tab === "rooms" && (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="p-5 lg:col-span-1">
+          <Card className="min-w-0 p-5 lg:col-span-1">
             <h2 className="mb-4 text-base font-semibold text-ink">{roomEditId ? "Change room" : "Add a room"}</h2>
             <form
               className="grid gap-4"
@@ -407,7 +407,7 @@ export default function AdminAccommodationPage() {
             </form>
           </Card>
 
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             <div className="mb-3 flex flex-wrap items-center gap-3">
               <label htmlFor="room-filter" className="text-sm font-medium text-ink-2">Show</label>
               <select id="room-filter" value={roomFilter} onChange={(e) => setRoomFilter(e.target.value)} className={selectInlineCls}>
@@ -429,7 +429,7 @@ export default function AdminAccommodationPage() {
                       <th className={th}>Floor</th>
                       <th className={th}>Places taken</th>
                       <th className={th}>Notes</th>
-                      <th className={th}><span className="sr-only">Actions</span></th>
+                      <th className={th} aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -458,7 +458,7 @@ export default function AdminAccommodationPage() {
 
       {tab === "dormitories" && (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="p-5 lg:col-span-1">
+          <Card className="min-w-0 p-5 lg:col-span-1">
             <h2 className="mb-4 text-base font-semibold text-ink">{dormEditId ? "Change dormitory" : "Add a dormitory"}</h2>
             <form
               className="grid gap-4"
@@ -489,7 +489,7 @@ export default function AdminAccommodationPage() {
             </form>
           </Card>
 
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             {dormitories.length === 0 ? (
               <EmptyState title="No dormitories yet" body="Add the first dormitory with the form." />
             ) : (
@@ -500,7 +500,7 @@ export default function AdminAccommodationPage() {
                       <th className={th}>Dormitory</th>
                       <th className={th}>Address</th>
                       <th className={th}>Rooms</th>
-                      <th className={th}><span className="sr-only">Actions</span></th>
+                      <th className={th} aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
@@ -523,7 +523,7 @@ export default function AdminAccommodationPage() {
 
       {tab === "types" && (
         <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="p-5 lg:col-span-1">
+          <Card className="min-w-0 p-5 lg:col-span-1">
             <h2 className="mb-4 text-base font-semibold text-ink">{typeEditId ? "Change room type" : "Add a room type"}</h2>
             <form
               className="grid gap-4"
@@ -543,7 +543,7 @@ export default function AdminAccommodationPage() {
             </form>
           </Card>
 
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             {roomTypes.length === 0 ? (
               <EmptyState title="No room types yet" body="Add the first room type with the form." />
             ) : (
@@ -553,7 +553,7 @@ export default function AdminAccommodationPage() {
                     <tr>
                       <th className={th}>Room type</th>
                       <th className={th}>Rooms of this type</th>
-                      <th className={th}><span className="sr-only">Actions</span></th>
+                      <th className={th} aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-line">
