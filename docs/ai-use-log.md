@@ -195,3 +195,44 @@ the declaration as well.
 - During a test run the real administrator inbox briefly receives messages
   about test reports. They are removed afterwards; once a clean-up failed
   and they had to be removed by hand (recorded in the build plan).
+
+## 2026-11-25: B2, the resident's answer after a repair
+
+**Module:** B2.
+
+**What the AI generated or changed**
+
+- Wrote `lib/confirmation.ts` (who may answer, the rating, the limit of
+  three, the seven days) with 17 unit tests.
+- Extended `scripts/appwrite-setup.mjs` so that it can add values to a list
+  column (decision D33) and added four columns to `fault_reports`; the
+  owner approved the check output before the setup ran.
+- Added `confirmRepair`, `reportNotFixed` and `closeUnanswered` to
+  `lib/server/reports.ts`, two actions to the report route and a third task
+  to the daily job.
+- Wrote `components/RepairAnswer.tsx` and showed the rating in the
+  administrator's dialog.
+- Wrote `tests/api/confirmation.test.ts` (22 tests) and
+  `docs/repair-confirmation.md`.
+
+**What the AI got wrong and how it was found**
+
+- The first design would have closed three real reports that had been
+  "resolved" for months. Found by reading the live data before writing the
+  job; the rule now needs a stored time of resolving.
+- The rating was first written into the history note, which all staff can
+  read. Found in the self-review and removed.
+- A resident answering after the seven days got a general refusal. Found by
+  an API test; the code was corrected, not the test.
+
+**What the author must review and verify**
+
+- Read `effectiveStatus` and `autoCloseAt` and explain in your own words
+  why no job is needed for the report to count as closed.
+- Decide whether seven days and three times suit the dormitory; both are
+  the assistant's proposals (constants in `lib/confirmation.ts`).
+- The API tests passed file by file, not in one run, because the connection
+  to Appwrite broke several runs. Repeat `npm run test:api` on a stable
+  connection before relying on the result.
+- Try the answer box yourself once; the assistant's browser check used one
+  test report and is described in the build plan.

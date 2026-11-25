@@ -149,9 +149,16 @@ The first run of that file was 21 of 22. The failing test showed a real
 defect: a resident answering too late was refused with a general message
 instead of "closed automatically". The code was corrected, not the test.
 
-Not tested: the answer box in a browser with a real resolved report of a
-test account by clicking (see the build plan for what was checked); the
-lag described in section 3 (it is a known property, not checked by a test).
+Checked by hand in a browser on 2026-11-25, with one report of a test
+resident that was created for the check and removed afterwards: the box on
+a resolved report, a too short reason, sending the report back, and
+confirming with a rating by keyboard only at 360 px width; the
+administrator's dialog showing the rating and the count.
+
+Not tested: in the browser, the refusal of a fourth "not fixed", the view
+of an automatically closed report, and a screen reader (the API tests
+cover the first two on the server); the lag described in section 3 (it is
+a known property, not checked by a test).
 
 ## 8. Limitations and not implemented
 
