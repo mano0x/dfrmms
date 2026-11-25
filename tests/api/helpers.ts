@@ -112,3 +112,20 @@ async function removeTestFaultNotifications(since: string, testIds: readonly str
     if (rows.length < 100 || mine.length === 0) return;
   }
 }
+
+/**
+ * Run a clean-up and, if it fails (for example on a dropped connection),
+ * run it again, up to three times. Clean-ups here only remove test rows, so
+ * repeating one is harmless; giving up after one failure leaves rows behind.
+ */
+export async function persistently(work: () => Promise<unknown>, tries = 3): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await work();
+      return;
+    } catch (err) {
+      if (attempt >= tries) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+    }
+  }
+}

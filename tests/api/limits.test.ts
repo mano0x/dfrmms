@@ -8,7 +8,7 @@
  */
 import { Query } from "node-appwrite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { RUN_STARTED, call, removeTestEvents, signIn, tablesDB } from "./helpers";
+import { RUN_STARTED, call, persistently, removeTestEvents, signIn, tablesDB } from "./helpers";
 
 const DB = "dfrmms";
 const MARK = "LIM-TEST";
@@ -38,8 +38,9 @@ beforeAll(async () => {
   [resident, admin] = await Promise.all([signIn("student2", "student"), signIn("admin", "admin")]);
 });
 afterAll(async () => {
-  await cleanUp();
-  await removeTestEvents(RUN_STARTED);
+  // Tried again if the connection drops: a failed clean-up once left this file's rows behind.
+  await persistently(cleanUp);
+  await persistently(() => removeTestEvents(RUN_STARTED));
 });
 
 describe("limits when requests arrive at the same moment", () => {

@@ -45,7 +45,7 @@ again against the code before work begins.
 | FR-23 | CSV export of the filtered report list | To build | B6 | |
 | FR-24 | Dormitories and rooms are reference data | Built | A2 | FR-24.1 to FR-24.11 below and in `docs/accommodation.md`. |
 | FR-25 | Every report change goes to an append-only history in the same transaction | Built | | |
-| FR-26 | In-app notifications for fault events | Built; API tests not run yet | B1 | `docs/fault-notifications.md`. |
+| FR-26 | In-app notifications for fault events | Built | B1 | `docs/fault-notifications.md`. |
 | FR-27 | E-mail for selected events | To build | B9 | Only with a mail provider. |
 | FR-28 | Daily check of reports past their target | Partly | A3, B6 | The daily job and its protection exist (A3; its API tests are not run yet). The check of overdue reports itself is B6. |
 | FR-29 | Security event log | Built | A3 | `docs/platform.md`, section 2. |

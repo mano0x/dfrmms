@@ -4,9 +4,9 @@ Thesis material for module B1 on branch `feature/dormitory-portal`.
 Everything under a heading exists in the code. Section 6 says exactly which
 tests were run.
 
-Status on 2026-11-25: implemented; unit tests, lint and type-check pass.
-**The API tests of this module are written but have not been run yet.** Not
-merged into `main` and not deployed.
+Status on 2026-11-25: implemented; unit tests, API tests (236 of 236),
+lint, type-check and build pass against a local server and the Appwrite
+project. Not merged into `main` and not deployed.
 
 ## 1. Purpose
 
@@ -88,8 +88,8 @@ on 2026-11-25: 252 of 252 over all files): every row of the table in
 section 2, the two rules, the plain wording for each status change, and
 that no message contains an ID.
 
-API tests (`tests/api/report-notifications.test.ts`, 10 tests). **Written,
-not yet run.** One report is followed from submission to closing; after
+API tests (`tests/api/report-notifications.test.ts`, 10 tests; run on
+2026-11-25: 236 of 236 over all ten files). One report is followed from submission to closing; after
 each step the inboxes of the resident, the technician and the administrator
 are read, and at the end those of another resident and another technician,
 who must have received nothing. A refused change must tell nobody.

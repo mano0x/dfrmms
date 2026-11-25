@@ -172,3 +172,26 @@ the declaration as well.
   expect it; the grouping is a design choice and easy to change.
 - The bar only decides what is shown. Check in one route of your choice
   that the role is still checked on the server.
+
+## 2026-11-25: B1, notifications about fault reports
+
+**Module:** B1.
+
+**What the AI generated or changed**
+
+- Wrote `lib/report-notifications.ts` (who is told what) with 12 unit tests.
+- Changed `lib/server/reports.ts` so that a new report and every change
+  write their messages in the same transaction.
+- Wrote `tests/api/report-notifications.test.ts` (10 tests) and extended the
+  test clean-up to remove the messages and log entries that tests cause.
+- Wrote `docs/fault-notifications.md`.
+
+**What the author must review and verify**
+
+- Read the table in section 2 of the module document against
+  `notificationsForChanges`, row by row.
+- Decide whether the wording of the messages suits the dormitory; it is the
+  assistant's wording.
+- During a test run the real administrator inbox briefly receives messages
+  about test reports. They are removed afterwards; once a clean-up failed
+  and they had to be removed by hand (recorded in the build plan).
