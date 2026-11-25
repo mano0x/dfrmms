@@ -2,7 +2,7 @@
 
 Plan for extending DFRMMS from fault reporting into a wider dormitory portal.
 Written 2026-11-21 from the build brief and the owner's answers. **Status:
-approved by the owner on 2026-11-21. A1 is done and approved. A2 is done and was approved on 2026-11-24 (branch pushed at `a9e7147`). A3 is in progress: the two tables exist and the security event log is written (writer, routes, hooks, pages, 16 API tests). The API tests pass (193 of 193 on 2026-11-24). The limiter is done (201 of 201 API tests on 2026-11-25). The secrets are set locally and the daily job and `docs/platform.md` are written (2026-11-25). A3 is done and was approved by the owner on 2026-11-25. A4 (navigation) is written and checked in a browser on 2026-11-25; it waits for the owner's approval. Next after that: Phase B, starting with B1. Earlier note: then the daily job, paging of the report lists and `docs/platform.md`.**
+approved by the owner on 2026-11-21. A1 is done and approved. A2 is done and was approved on 2026-11-24 (branch pushed at `a9e7147`). A3 is in progress: the two tables exist and the security event log is written (writer, routes, hooks, pages, 16 API tests). The API tests pass (193 of 193 on 2026-11-24). The limiter is done (201 of 201 API tests on 2026-11-25). The secrets are set locally and the daily job and `docs/platform.md` are written (2026-11-25). A3 is done and was approved by the owner on 2026-11-25. A4 (navigation) is done and was approved on 2026-11-25. Phase A is complete. Next: Phase B, starting with B1. Earlier note: then the daily job, paging of the report lists and `docs/platform.md`.**
 
 A new session without the earlier conversation starts here: read this file,
 then continue at the first unticked step. Rules that apply to every step are
