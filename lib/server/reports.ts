@@ -56,6 +56,8 @@ export type ReportDTO = {
   rating: number | null;
   /** How often the resident sent the report back as not fixed. */
   notFixedCount: number;
+  /** True when the report is shown as closed because nobody answered within seven days, before the daily job has written that down. */
+  autoClosed: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -101,6 +103,7 @@ const toReport = (row: any): ReportDTO => ({
   confirmedAt: row.confirmedAt ?? null,
   rating: row.rating ?? null,
   notFixedCount: Number(row.notFixedCount ?? 0),
+  autoClosed: autoCloseDue({ status: row.status, resolvedAt: row.resolvedAt ?? null }),
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 });
@@ -147,7 +150,7 @@ async function change(report: ReportDTO, actor: Author, changes: Record<string, 
   const now = new Date().toISOString();
   // The seven days for the resident's answer start whenever the report is marked as resolved.
   const data = changes.status === "resolved" ? { ...changes, resolvedAt: now } : changes;
-  const after = { ...report, ...data, updatedAt: now } as ReportDTO;
+  const after = { ...report, ...data, autoClosed: false, updatedAt: now } as ReportDTO;
   // The people concerned are told in the same transaction: the change, its history and its messages are saved together.
   const messages = notificationsForChanges(entries, report, after, actor.id, administrators);
   await inTransaction(async (transactionId) => {
@@ -493,7 +496,7 @@ export async function closeUnanswered(now: Date = new Date()): Promise<number> {
     const due = rows.filter((row) => autoCloseDue({ status: row.status, resolvedAt: row.resolvedAt ?? null }, now));
     for (const row of due) {
       // The stored row, not the effective status: the history must say "resolved to closed".
-      const stored = { ...toReport(row), status: "resolved" };
+      const stored = { ...toReport(row), status: "resolved", autoClosed: false };
       try {
         await change(stored, SYSTEM, { status: "closed" }, [{ type: "confirmed", from: "resolved", to: "closed", note: "Closed automatically: no answer within 7 days." }]);
         closed++;

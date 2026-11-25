@@ -107,3 +107,14 @@ describe("who sees the rating", () => {
     expect(canSeeRating(tomas, repair({ assignedToId: null }))).toBe(false);
   });
 });
+
+describe("a report the server already shows as closed", () => {
+  it("FR-11: the resident is told that it was closed automatically, not a general refusal", () => {
+    // As the server hands it over on the eighth day: shown as closed, marked as closed automatically.
+    const shown = repair({ status: "closed", autoClosed: true });
+    expect(confirmProblem(owner, shown, day(8))).toMatch(/closed automatically/);
+    expect(notFixedProblem(owner, shown, day(8))).toMatch(/submit a new report/);
+    // A report closed by a person gets the general message.
+    expect(confirmProblem(owner, repair({ status: "closed" }), day(1))).toMatch(/marked as resolved/);
+  });
+});

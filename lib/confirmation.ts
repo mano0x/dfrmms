@@ -43,6 +43,12 @@ export type Repair = {
   resolvedAt: string | null;
   updatedAt: string;
   notFixedCount: number;
+  /**
+   * True when the status given here is already the one every reader sees
+   * ("closed") because the seven days ran out, while the stored status is
+   * still "resolved". Set by the server when it reads a report.
+   */
+  autoClosed?: boolean;
 };
 
 /**
@@ -70,7 +76,7 @@ const isOwner = (actor: Actor, report: Pick<Repair, "studentId">) => actor.role 
 /** Why this person cannot confirm the repair, or null. Only the resident who reported it, and only while it waits for their answer. */
 export function confirmProblem(actor: Actor, report: Repair, now: Date = new Date()): string | null {
   if (!isOwner(actor, report)) return "Only the resident who reported the fault can confirm the repair.";
-  if (autoCloseDue(report, now)) return `This report was closed automatically ${AUTO_CLOSE_DAYS} days after it was resolved.`;
+  if (report.autoClosed || autoCloseDue(report, now)) return `This report was closed automatically ${AUTO_CLOSE_DAYS} days after it was resolved.`;
   if (report.status !== "resolved") return "Only a report that was marked as resolved can be confirmed.";
   return null;
 }
@@ -78,7 +84,7 @@ export function confirmProblem(actor: Actor, report: Repair, now: Date = new Dat
 /** Why this person cannot send the report back as "not fixed", or null. */
 export function notFixedProblem(actor: Actor, report: Repair, now: Date = new Date()): string | null {
   if (!isOwner(actor, report)) return "Only the resident who reported the fault can say that it is not fixed.";
-  if (autoCloseDue(report, now)) return `This report was closed automatically ${AUTO_CLOSE_DAYS} days after it was resolved. Please submit a new report.`;
+  if (report.autoClosed || autoCloseDue(report, now)) return `This report was closed automatically ${AUTO_CLOSE_DAYS} days after it was resolved. Please submit a new report.`;
   if (report.status !== "resolved") return "Only a report that was marked as resolved can be sent back.";
   if (report.notFixedCount >= MAX_NOT_FIXED) return `This report was already sent back ${MAX_NOT_FIXED} times. Please contact an administrator.`;
   return null;
