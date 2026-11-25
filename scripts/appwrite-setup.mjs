@@ -54,7 +54,8 @@ const ITEM_CONDITIONS = ["new", "good", "used"];
 const ITEM_STATUSES = ["available", "reserved", "collected", "removed"];
 const RESERVATION_STATUSES = ["active", "cancelled", "expired", "collected"];
 const ALLOCATION_STATUSES = ["active", "ended", "cancelled"];
-const LOG_TYPES = ["created", "edited", "status", "assignment", "priority", "note"];
+// "confirmed" and "not-fixed" were added for module B2 (the resident's answer after a repair).
+const LOG_TYPES = ["created", "edited", "status", "assignment", "priority", "note", "confirmed", "not-fixed"];
 
 const text = (key, size, required = false) => ({ kind: "varchar", key, size, required });
 const choice = (key, elements, required = false) => ({ kind: "enum", key, elements, required });
@@ -106,6 +107,11 @@ const TABLES = [
       // where the fault was, as it was written at the time.
       text("dormitoryId", 36),
       text("roomId", 36),
+      // Module B2: the resident's answer after a repair.
+      date("resolvedAt"),
+      date("confirmedAt"),
+      whole("rating"),
+      whole("notFixedCount"),
       text("assignedTo", 80),
       text("assignedToId", 36),
       text("resolutionNote", 1000),
@@ -470,6 +476,25 @@ const FREE_BUCKET = {
 /* ------------------------------------------------------------------ */
 
 const report = { created: [], existing: [], wouldCreate: [], errors: [] };
+
+/**
+ * The one change this script may make to an existing column (decision D33):
+ * add values to a list column. It never removes or renames a value, also not
+ * one that is stored but no longer listed here; existing rows are not touched.
+ */
+async function addMissingListValues(tableId, c) {
+  const existing = await tablesDB.getColumn({ databaseId: DATABASE_ID, tableId, key: c.key });
+  const have = existing.elements ?? [];
+  const missing = c.elements.filter((value) => !have.includes(value));
+  if (!missing.length) return;
+  const label = `value${missing.length > 1 ? "s" : ""} ${missing.map((v) => `"${v}"`).join(", ")} in the list column ${tableId}.${c.key} (existing values are kept: ${have.join(", ")})`;
+  if (checkOnly) {
+    report.wouldCreate.push(label);
+    return;
+  }
+  await tablesDB.updateEnumColumn({ databaseId: DATABASE_ID, tableId, key: c.key, elements: [...have, ...missing], required: existing.required, ...(existing.required ? {} : { xdefault: existing.default ?? null }) });
+  report.created.push(label);
+}
 const isNotFound = (err) => err?.code === 404;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -548,6 +573,10 @@ try {
         () => tablesDB.getColumn({ databaseId: DATABASE_ID, tableId: t.id, key: c.key }),
         () => createColumn(t.id, c)
       );
+    }
+    for (const c of t.columns.filter((column) => column.kind === "enum")) {
+      const exists = await tablesDB.getColumn({ databaseId: DATABASE_ID, tableId: t.id, key: c.key }).then(() => true).catch(() => false);
+      if (exists) await addMissingListValues(t.id, c);
     }
     if (!checkOnly) await waitForColumns(t.id);
 

@@ -2,7 +2,7 @@
 
 Plan for extending DFRMMS from fault reporting into a wider dormitory portal.
 Written 2026-11-21 from the build brief and the owner's answers. **Status:
-approved by the owner on 2026-11-21. A1 is done and approved. A2 is done and was approved on 2026-11-24 (branch pushed at `a9e7147`). A3 is in progress: the two tables exist and the security event log is written (writer, routes, hooks, pages, 16 API tests). The API tests pass (193 of 193 on 2026-11-24). The limiter is done (201 of 201 API tests on 2026-11-25). The secrets are set locally and the daily job and `docs/platform.md` are written (2026-11-25). A3 is done and was approved by the owner on 2026-11-25. A4 (navigation) is done and was approved on 2026-11-25. Phase A is complete. B1 (fault notifications) is done and was approved by the owner on 2026-11-25. Next: B2, confirmation and rating. Earlier note: then the daily job, paging of the report lists and `docs/platform.md`.**
+approved by the owner on 2026-11-21. A1 is done and approved. A2 is done and was approved on 2026-11-24 (branch pushed at `a9e7147`). A3 is in progress: the two tables exist and the security event log is written (writer, routes, hooks, pages, 16 API tests). The API tests pass (193 of 193 on 2026-11-24). The limiter is done (201 of 201 API tests on 2026-11-25). The secrets are set locally and the daily job and `docs/platform.md` are written (2026-11-25). A3 is done and was approved by the owner on 2026-11-25. A4 (navigation) is done and was approved on 2026-11-25. Phase A is complete. B1 (fault notifications) is done and was approved by the owner on 2026-11-25. B2 (confirmation and rating) is in progress: rules and the schema definition are written; the schema change waits for the owner's word. Earlier note: then the daily job, paging of the report lists and `docs/platform.md`.**
 
 A new session without the earlier conversation starts here: read this file,
 then continue at the first unticked step. Rules that apply to every step are
@@ -80,6 +80,8 @@ in-app notifications; confidential neighbour notices; free-item sharing.
 | D30 | A report keeps its dormitory and room as text, as the record of where the fault was; the IDs go beside it. |
 | D31 | An administrator creating a resident chooses a room, which creates the allocation. Two existing tests and the documents change with it. |
 | D32 | Dormitory coordinates stay empty until E3; the address is marked `SAMPLE`. |
+| D33 | (Settles O3, 2026-11-25.) The setup script may make one change to an existing column: add values to a list column. It never removes or renames a value and does not touch rows. The addition is shown by `appwrite:check` first and needs the owner's approval like any schema change. |
+| D34 | (2026-11-25.) The limits on notices and free items stay "in any 24 hours"; counting and writing run under a lock row per person (settled during A3). |
 
 ## 4. Decisions still open
 
@@ -170,7 +172,9 @@ Ideas from the owner are marked "idea 1" to "idea 12".
 - [x] Rules for who is told about what; `notify()` inside the existing transactions; tests. **Written 2026-11-25:** `lib/report-notifications.ts` (12 unit tests), called from the two places in `lib/server/reports.ts` that write a report; `docs/fault-notifications.md`. No schema change was needed (the notification type is text), so open decision O3 is not touched yet; it comes with B3. API-tested on 2026-11-25 (10 tests in `tests/api/report-notifications.test.ts`).
 
 **B2. Confirmation and rating** (FR-11)
-- [ ] Confirm, "not fixed" with reason, rating 1 to 5, auto-close after 7 days decided on read.
+- [x] Pure rules `lib/confirmation.ts` with 16 unit tests. Done 2026-11-25. The resident answers within 7 days of "resolved"; "not fixed" at most 3 times per report; the rating is optional and given with the confirmation.
+- [ ] Schema: columns `resolvedAt`, `confirmedAt`, `rating`, `notFixedCount` on `fault_reports`; values `confirmed` and `not-fixed` in `status_log.type` (the first use of D33). Defined in the setup script 2026-11-25; `appwrite:check` shown to the owner; waits for approval.
+- [ ] Confirm, "not fixed" with reason, rating 1 to 5, auto-close after 7 days decided on read. Server operations, route actions, daily job task, page, API tests, module document.
 
 **B3. Visit verification with a one-time code** (FR-V, idea 2)
 - [ ] Status `assigned` (D6, O3, O5) and its transitions.
@@ -352,5 +356,6 @@ Nothing else is planned. Charts are inline SVG; PDF is the browser's print.
 | 2026-11-25 | B1 written: `npm test`, lint, type-check | 252 of 252 unit tests (240 before + 12 new); lint 0 errors, 5 older warnings; type-check passes. `npm run test:api` **not run** since this change |
 | 2026-11-25 | B1: `tests/api/report-notifications.test.ts` alone, then `npm run test:api` (ten files), local built server, live project, approved by the owner | 10 of 10, then **236 of 236** tests (226 before + 10 new), 723 s. One file was still reported as failed: the clean-up at the end of `limits.test.ts` could not connect to Appwrite (connect timeout from the test process), after all its tests had passed |
 | 2026-11-25 | B1: row counts after the run (read-only) | That failed clean-up left test rows: 5 free items and 1 dormitory named LIM-TEST, 6 notifications mentioning LIM-TEST (3 of them in the inbox of the owner's real administrator account), 7 log entries of test accounts. All were listed first, then removed; counts afterwards as before the run. The clean-up of that file now tries up to three times; rerun alone: 8 of 8, nothing left |
+| 2026-11-25 | B2 step 1: `npm test`; `npm run appwrite:check` on `6afa1cbf000cec97cead` | 268 of 268 unit tests (252 before + 16 new); lint 0 errors; type-check passes. Check: 214 present, 5 missing (4 columns on `fault_reports`; the values `confirmed` and `not-fixed` in the list column `status_log.type`, existing values kept); nothing changed |
 | 2026-11-24 | A2: row counts after the runs (read-only) | Same as before the runs: 6 reports, 3 history rows, 2 dormitories, 3 room types, 6 rooms, 7 allocations (all active); 0 notices, listings, reservations, notifications and locks; no row named ACC-TEST or API-TEST; the 4 roomless test residents have no allocation and no room text. 16 accounts and profiles (12 before + the 4 new test residents) |
 | 2026-11-24 | A2: browser check of `/admin/accommodation` and the create-user form, signed in as the test administrator, read-only | All four tabs show the migrated data; no sideways scrolling at 360 px; every field has a label. No change was made through the page |
