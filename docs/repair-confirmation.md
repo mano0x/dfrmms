@@ -5,10 +5,11 @@ Everything under a heading exists in the code. Section 7 says exactly which
 tests were run and what was not tested.
 
 Status on 2026-11-25: implemented; unit tests, lint, type-check and build
-pass; the module's own API tests pass (22 of 22). **No full API run has
-completed since this module was written:** three attempts on 2026-11-25
-were broken by the internet connection, as recorded in the build plan. Not
-merged into `main` and not deployed.
+pass; the module's own API tests pass (22 of 22). All 258 API tests of the
+project have passed on this code on 2026-11-25, in three separate runs and
+not in a single one, because the internet connection broke several full
+runs; the build plan records each run. Not merged into `main` and not
+deployed.
 
 ## 1. Purpose
 
