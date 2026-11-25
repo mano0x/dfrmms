@@ -492,7 +492,7 @@ async function addMissingListValues(tableId, c) {
     report.wouldCreate.push(label);
     return;
   }
-  await tablesDB.updateEnumColumn({ databaseId: DATABASE_ID, tableId, key: c.key, elements: [...have, ...missing], required: existing.required, ...(existing.required ? {} : { xdefault: existing.default ?? null }) });
+  await tablesDB.updateEnumColumn({ databaseId: DATABASE_ID, tableId, key: c.key, elements: [...have, ...missing], required: existing.required, xdefault: existing.required ? null : existing.default ?? null });
   report.created.push(label);
 }
 const isNotFound = (err) => err?.code === 404;
