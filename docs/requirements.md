@@ -30,7 +30,7 @@ again against the code before work begins.
 | FR-08 | Resident chooses the location: own room or a shared area | To build | B5 | Today the location is always the resident's room. |
 | FR-09 | Resident edits own report while it is open, unassigned and not triaged | Built | | |
 | FR-10 | Resident lists own reports with status, history and target time | Built | | |
-| FR-11 | Resident confirms a repair or reports it as not fixed, and rates it | To build | B2 | |
+| FR-11 | Resident confirms a repair or reports it as not fixed, and rates it | Built; a full API run is still open | B2 | `docs/repair-confirmation.md`. The module's own API tests pass. |
 | FR-12 | Limits on reports and photo uploads per resident in 24 hours | To build | B4 | |
 | FR-13 | Technician sees assigned and all reports, filtered by status, with overdue marks | Built | | |
 | FR-14 | Technician changes status on assigned reports | Built | B3 changes it | The `assigned` status and the visit code change the transitions. |
