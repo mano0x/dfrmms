@@ -22,6 +22,8 @@ import { currentNames } from "./names";
 import { withCurrentNames } from "../names";
 import { HttpError } from "./http";
 import { inTransaction } from "./transaction";
+import { administratorIds, notify } from "./notifications";
+import { notificationsForChanges } from "../report-notifications";
 import { rowsToFetch, toPage, type PageQuery } from "../paging";
 import { EMPTY_SUMMARY, filterProblem, overdueCutoffs, reportFilterSchema, type ReportFilter, type ReportSummary } from "../report-list";
 import { PRIORITY_VALUES } from "../maintenance";
@@ -126,11 +128,15 @@ function logRow(transactionId: string, report: { id: string; studentId: string }
 /** Update a report and record what happened, atomically. Returns the updated report. */
 async function change(report: ReportDTO, actor: Actor, data: Record<string, unknown>, entries: LogInput[]): Promise<ReportDTO> {
   const now = new Date().toISOString();
+  const after = { ...report, ...data, updatedAt: now } as ReportDTO;
+  // The people concerned are told in the same transaction: the change, its history and its messages are saved together.
+  const messages = notificationsForChanges(entries, report, after, actor.id);
   await inTransaction(async (transactionId) => {
     await adminServices().tablesDB.updateRow({ ...reportTable, rowId: report.id, transactionId, data: { ...data, updatedAt: now } });
     for (const entry of entries) await logRow(transactionId, report, actor, entry, now);
+    for (const m of messages) await notify(transactionId, m.userId, m.message, now);
   });
-  return { ...report, ...data, updatedAt: now } as ReportDTO;
+  return after;
 }
 
 /* ------------------------------------------------------------------ */
@@ -331,9 +337,12 @@ export async function createReport(actor: Actor, body: unknown): Promise<ReportD
     createdAt: now,
     updatedAt: now,
   };
+  const parties = { title: data.title, studentId: actor.id, dormitory: data.dormitory, roomNumber: data.roomNumber, assignedToId: null };
+  const messages = notificationsForChanges([{ type: "created", to: "open" }], parties, parties, actor.id, await administratorIds());
   await inTransaction(async (transactionId) => {
     await adminServices().tablesDB.createRow({ ...reportTable, rowId: id, transactionId, permissions: [], data });
     await logRow(transactionId, { id, studentId: actor.id }, actor, { type: "created", to: "open" }, now);
+    for (const m of messages) await notify(transactionId, m.userId, m.message, now);
   });
   return toReport({ $id: id, ...data });
 }

@@ -91,6 +91,24 @@ export async function removeTestEvents(since: string = RUN_STARTED, createdAccou
     const { rows } = await tablesDB.listRows({ databaseId: "dfrmms", tableId: "security_events", queries: [Query.greaterThan("createdAt", since), Query.limit(100)] });
     const mine = rows.filter((e) => !e.actorId || testIds.includes(e.actorId));
     for (const e of mine) await tablesDB.deleteRow({ databaseId: "dfrmms", tableId: "security_events", rowId: e.$id }).catch(() => {});
+    if (rows.length < 100 || mine.length === 0) break;
+  }
+  await removeTestFaultNotifications(since, testIds);
+}
+
+/**
+ * Remove the fault notifications a test file caused: those written since it
+ * started that went to a test account, and those about a new report (a
+ * report submitted during a test run is a test report; administrators,
+ * also real ones, are told about each). The same caution applies as above:
+ * on a project in real use at the same time, a real "new report" message
+ * from those minutes would be removed too.
+ */
+async function removeTestFaultNotifications(since: string, testIds: readonly string[]) {
+  for (let round = 0; round < 20; round++) {
+    const { rows } = await tablesDB.listRows({ databaseId: "dfrmms", tableId: "notifications", queries: [Query.greaterThan("createdAt", since), Query.startsWith("type", "fault-"), Query.limit(100)] });
+    const mine = rows.filter((n) => n.type === "fault-new" || testIds.includes(n.userId));
+    for (const n of mine) await tablesDB.deleteRow({ databaseId: "dfrmms", tableId: "notifications", rowId: n.$id }).catch(() => {});
     if (rows.length < 100 || mine.length === 0) return;
   }
 }
