@@ -203,7 +203,7 @@ the declaration as well.
 **What the AI generated or changed**
 
 - Wrote `lib/confirmation.ts` (who may answer, the rating, the limit of
-  three, the seven days) with 17 unit tests.
+  three, the seven days) with 16 unit tests.
 - Extended `scripts/appwrite-setup.mjs` so that it can add values to a list
   column (decision D33) and added four columns to `fault_reports`; the
   owner approved the check output before the setup ran.
