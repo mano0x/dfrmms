@@ -14,7 +14,7 @@
  */
 
 export type ReportChange = {
-  type: "created" | "edited" | "status" | "assignment" | "priority" | "note";
+  type: "created" | "edited" | "status" | "assignment" | "priority" | "note" | "confirmed" | "not-fixed";
   from?: string | null;
   to?: string | null;
 };
@@ -32,6 +32,9 @@ export type ReportMessage = { type: string; title: string; body: string; link: s
 export type Outgoing = { userId: string; message: ReportMessage };
 
 const PAGE = { resident: "/student", technician: "/technician", admin: "/admin" } as const;
+
+/** The actor ID used when the system itself changes a report (the daily job). */
+export const SYSTEM_ACTOR_ID = "system";
 
 const quoted = (title: string): string => `"${title.length > 80 ? `${title.slice(0, 77)}...` : title}"`;
 const place = (report: ReportParties): string => `${report.dormitory}, room ${report.roomNumber}`;
@@ -105,6 +108,22 @@ export function notificationsForChanges(
     if (change.type === "note") {
       tell(resident, { type: "fault-note", title: "A note was added to your report", body: `Open ${quoted(after.title)} to read it.`, link: PAGE.resident });
       tell(technician, { type: "fault-note", title: "A note was added to a report assigned to you", body: `Open ${quoted(after.title)} to read it.`, link: PAGE.technician });
+    }
+    if (change.type === "confirmed") {
+      if (actorId === SYSTEM_ACTOR_ID) {
+        // Closed by the system because no answer came: both are told, in those words.
+        tell(resident, { type: "fault-status", title: "Your report was closed", body: `${quoted(after.title)} was closed because no answer came within 7 days.`, link: PAGE.resident });
+        tell(technician, { type: "fault-status", title: "A report assigned to you was closed", body: `${quoted(after.title)} was closed automatically after 7 days without an answer.`, link: PAGE.technician });
+      } else {
+        tell(technician, { type: "fault-confirmed", title: "The resident confirmed the repair", body: `${quoted(after.title)} is closed.`, link: PAGE.technician });
+      }
+    }
+
+    if (change.type === "not-fixed") {
+      const message = { type: "fault-not-fixed", title: "The resident says the fault is not fixed", body: `Open ${quoted(after.title)} in ${place(after)} to read why.` };
+      if (technician) tell(technician, { ...message, link: PAGE.technician });
+      // Without a technician somebody must still hear about it.
+      else for (const adminId of administratorIds) tell(adminId, { ...message, link: PAGE.admin });
     }
     // "edited": a resident can edit only while nobody is assigned and nothing was triaged, so there is nobody to tell.
   }

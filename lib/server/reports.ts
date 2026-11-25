@@ -23,7 +23,8 @@ import { withCurrentNames } from "../names";
 import { HttpError } from "./http";
 import { inTransaction } from "./transaction";
 import { administratorIds, notify } from "./notifications";
-import { notificationsForChanges } from "../report-notifications";
+import { SYSTEM_ACTOR_ID, notificationsForChanges } from "../report-notifications";
+import { autoCloseDue, canSeeRating, confirmInputSchema, confirmProblem, effectiveStatus, notFixedInputSchema, notFixedProblem } from "../confirmation";
 import { rowsToFetch, toPage, type PageQuery } from "../paging";
 import { EMPTY_SUMMARY, filterProblem, overdueCutoffs, reportFilterSchema, type ReportFilter, type ReportSummary } from "../report-list";
 import { PRIORITY_VALUES } from "../maintenance";
@@ -47,6 +48,14 @@ export type ReportDTO = {
   assignedTo: string | null;
   assignedToId: string | null;
   resolutionNote: string | null;
+  /** When it was last marked as resolved; the resident has seven days from then to answer. */
+  resolvedAt: string | null;
+  /** When the resident confirmed the repair. */
+  confirmedAt: string | null;
+  /** The resident's rating, 1 to 5. Sent only to those who may see it. */
+  rating: number | null;
+  /** How often the resident sent the report back as not fixed. */
+  notFixedCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -63,7 +72,10 @@ export type HistoryDTO = {
   timestamp: string;
 };
 
-type LogInput = { type: "created" | "edited" | "status" | "assignment" | "priority" | "note"; from?: string | null; to?: string | null; note?: string };
+type LogInput = { type: "created" | "edited" | "status" | "assignment" | "priority" | "note" | "confirmed" | "not-fixed"; from?: string | null; to?: string | null; note?: string };
+/** Who made a change: a signed-in person, or the system itself (the daily job), which has no role. */
+type Author = { id: string; name: string; role: Role | null };
+const SYSTEM: Author = { id: SYSTEM_ACTOR_ID, name: "System", role: null };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const toReport = (row: any): ReportDTO => ({
@@ -76,7 +88,8 @@ const toReport = (row: any): ReportDTO => ({
   priorityReason: row.priorityReason ?? null,
   description: row.description,
   photoFileId: row.photoFileId ?? null,
-  status: row.status,
+  // A resolved report nobody answered counts as closed after seven days, whether or not the daily job has written that down yet.
+  status: effectiveStatus({ status: row.status, resolvedAt: row.resolvedAt ?? null }),
   studentId: row.studentId,
   studentName: row.studentName ?? "",
   dormitory: row.dormitory ?? "",
@@ -84,6 +97,10 @@ const toReport = (row: any): ReportDTO => ({
   assignedTo: row.assignedTo ?? null,
   assignedToId: row.assignedToId ?? null,
   resolutionNote: row.resolutionNote ?? null,
+  resolvedAt: row.resolvedAt ?? null,
+  confirmedAt: row.confirmedAt ?? null,
+  rating: row.rating ?? null,
+  notFixedCount: Number(row.notFixedCount ?? 0),
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 });
@@ -104,7 +121,7 @@ const toHistory = (row: any): HistoryDTO => ({
 const reportTable = { databaseId: DATABASE_ID, tableId: TABLES.reports };
 const historyTable = { databaseId: DATABASE_ID, tableId: TABLES.history };
 
-function logRow(transactionId: string, report: { id: string; studentId: string }, actor: Actor, entry: LogInput, at: string) {
+function logRow(transactionId: string, report: { id: string; studentId: string }, actor: Author, entry: LogInput, at: string) {
   return adminServices().tablesDB.createRow({
     ...historyTable,
     rowId: ID.unique(),
@@ -126,11 +143,13 @@ function logRow(transactionId: string, report: { id: string; studentId: string }
 }
 
 /** Update a report and record what happened, atomically. Returns the updated report. */
-async function change(report: ReportDTO, actor: Actor, data: Record<string, unknown>, entries: LogInput[]): Promise<ReportDTO> {
+async function change(report: ReportDTO, actor: Author, changes: Record<string, unknown>, entries: LogInput[], administrators: readonly string[] = []): Promise<ReportDTO> {
   const now = new Date().toISOString();
+  // The seven days for the resident's answer start whenever the report is marked as resolved.
+  const data = changes.status === "resolved" ? { ...changes, resolvedAt: now } : changes;
   const after = { ...report, ...data, updatedAt: now } as ReportDTO;
   // The people concerned are told in the same transaction: the change, its history and its messages are saved together.
-  const messages = notificationsForChanges(entries, report, after, actor.id);
+  const messages = notificationsForChanges(entries, report, after, actor.id, administrators);
   await inTransaction(async (transactionId) => {
     await adminServices().tablesDB.updateRow({ ...reportTable, rowId: report.id, transactionId, data: { ...data, updatedAt: now } });
     for (const entry of entries) await logRow(transactionId, report, actor, entry, now);
@@ -237,12 +256,15 @@ export async function listReports(actor: Actor, filterInput: unknown, page: Page
   const [names, summary] = await Promise.all([currentNames(), counts]);
   // The rule is applied again to every row, whatever the query returned.
   const cut = toPage(rows.map(toReport).filter((r) => canViewReport(actor, r)), page.limit);
-  return { reports: cut.items.map((r) => withCurrentNames(r, names)), nextCursor: cut.nextCursor, summary };
+  return { reports: cut.items.map((r) => forViewer(actor, withCurrentNames(r, names))), nextCursor: cut.nextCursor, summary };
 }
 
-/** A single report as sent to the pages: with the people's current names. */
-export async function forDisplay(report: ReportDTO): Promise<ReportDTO> {
-  return withCurrentNames(report, await currentNames());
+/** The report as this viewer may see it: the rating only for the resident who gave it, the assigned technician and administrators. */
+const forViewer = (viewer: Actor, report: ReportDTO): ReportDTO => (canSeeRating(viewer, report) ? report : { ...report, rating: null });
+
+/** A single report as sent to the pages: with the people's current names, shaped for the viewer. */
+export async function forDisplay(viewer: Actor, report: ReportDTO): Promise<ReportDTO> {
+  return forViewer(viewer, withCurrentNames(report, await currentNames()));
 }
 
 /** The report, if it exists and the caller may see it. "Not found" is used for both cases. */
@@ -334,6 +356,7 @@ export async function createReport(actor: Actor, body: unknown): Promise<ReportD
     roomId: residence.roomId,
     assignedTo: null,
     assignedToId: null,
+    notFixedCount: 0,
     createdAt: now,
     updatedAt: now,
   };
@@ -418,4 +441,67 @@ export async function saveNote(actor: Actor, reportId: string, note: unknown): P
   const parsed = resolutionNoteSchema.safeParse(note);
   if (!parsed.success) throw new HttpError(400, firstError(parsed));
   return change(report, actor, { resolutionNote: parsed.data }, [{ type: "note", note: parsed.data }]);
+}
+
+/* ------------------------------------------------------------------ */
+/* The resident's answer after a repair                                */
+/* ------------------------------------------------------------------ */
+
+/** The resident confirms that the fault is fixed, with an optional rating. The report is closed. */
+export async function confirmRepair(actor: Actor, reportId: string, body: unknown): Promise<ReportDTO> {
+  const report = await getReportFor(actor, reportId);
+  const problem = confirmProblem(actor, report);
+  if (problem) throw new HttpError(403, problem);
+  const parsed = confirmInputSchema.safeParse(body);
+  if (!parsed.success) throw new HttpError(400, firstError(parsed));
+  const rating = parsed.data.rating ?? null;
+  return change(report, actor, { status: "closed", confirmedAt: new Date().toISOString(), rating }, [
+    // The rating is not written into the history: all staff read the history, but only some may see the rating.
+    { type: "confirmed", from: "resolved", to: "closed" },
+  ]);
+}
+
+/** The resident says the fault is not fixed, with a reason. The report goes back to "in progress". */
+export async function reportNotFixed(actor: Actor, reportId: string, body: unknown): Promise<ReportDTO> {
+  const report = await getReportFor(actor, reportId);
+  const problem = notFixedProblem(actor, report);
+  if (problem) throw new HttpError(403, problem);
+  const parsed = notFixedInputSchema.safeParse(body);
+  if (!parsed.success) throw new HttpError(400, firstError(parsed));
+  // With no technician on the report, the administrators are told instead.
+  const administrators = report.assignedToId ? [] : await administratorIds();
+  return change(report, actor, { status: "in-progress", notFixedCount: report.notFixedCount + 1 }, [
+    { type: "not-fixed", from: "resolved", to: "in-progress", note: parsed.data.reason },
+  ], administrators);
+}
+
+/**
+ * Write down the automatic closing of resolved reports that nobody answered
+ * within seven days. Called by the daily job. Every reader already sees such
+ * a report as closed; this makes the stored status agree, adds the history
+ * entry and tells the resident. Running it again finds nothing left to do.
+ */
+export async function closeUnanswered(now: Date = new Date()): Promise<number> {
+  const { tablesDB } = adminServices();
+  let closed = 0;
+  // Every report stored as resolved is looked at, page by page; the rule decides which are due.
+  for (let cursor: string | null = null, round = 0; round < 50; round++) {
+    const { rows }: { rows: Record<string, any>[] } = await tablesDB.listRows({ ...reportTable, queries: [Query.equal("status", "resolved"), Query.orderAsc("$id"), ...(cursor ? [Query.cursorAfter(cursor)] : []), Query.limit(100)] }); // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!rows.length) break;
+    cursor = rows[rows.length - 1].$id;
+    // Reports resolved before the rule existed have no time of resolving and are left as they are.
+    const due = rows.filter((row) => autoCloseDue({ status: row.status, resolvedAt: row.resolvedAt ?? null }, now));
+    for (const row of due) {
+      // The stored row, not the effective status: the history must say "resolved to closed".
+      const stored = { ...toReport(row), status: "resolved" };
+      try {
+        await change(stored, SYSTEM, { status: "closed" }, [{ type: "confirmed", from: "resolved", to: "closed", note: "Closed automatically: no answer within 7 days." }]);
+        closed++;
+      } catch (err) {
+        console.error("A report could not be closed automatically:", (err as { type?: string })?.type ?? "connection failure");
+      }
+    }
+    if (rows.length < 100) break;
+  }
+  return closed;
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Actor } from "../../lib/access";
 import {
-  AUTO_CLOSE_DAYS, MAX_NOT_FIXED, autoCloseAt, autoCloseCutoff, autoCloseDue, awaitsAnswer, canSeeRating, confirmInputSchema, confirmProblem,
+  AUTO_CLOSE_DAYS, MAX_NOT_FIXED, autoCloseAt, autoCloseDue, awaitsAnswer, canSeeRating, confirmInputSchema, confirmProblem,
   effectiveStatus, notFixedInputSchema, notFixedProblem, type Repair,
 } from "../../lib/confirmation";
 
@@ -20,7 +20,7 @@ const day = (n: number) => new Date(new Date(RESOLVED).getTime() + n * 24 * 3600
 describe("the seven days after a repair", () => {
   it("FR-11: a resolved report counts as closed exactly seven days after it was resolved", () => {
     expect(AUTO_CLOSE_DAYS).toBe(7);
-    expect(autoCloseAt(repair()).toISOString()).toBe("2026-11-27T10:00:00.000Z");
+    expect(autoCloseAt(repair())?.toISOString()).toBe("2026-11-27T10:00:00.000Z");
     expect(autoCloseDue(repair(), new Date("2026-11-27T09:59:59.999Z"))).toBe(false);
     expect(autoCloseDue(repair(), new Date("2026-11-27T10:00:00.000Z"))).toBe(true);
     expect(effectiveStatus(repair(), day(6))).toBe("resolved");
@@ -32,18 +32,18 @@ describe("the seven days after a repair", () => {
       expect(effectiveStatus(repair({ status }), day(30))).toBe(status);
     }
   });
-  it("FR-11: a report resolved before the time was stored uses its last change", () => {
-    const old = repair({ resolvedAt: null, updatedAt: "2026-11-01T08:00:00.000Z" });
-    expect(autoCloseAt(old).toISOString()).toBe("2026-11-08T08:00:00.000Z");
-    expect(autoCloseDue(old, new Date("2026-11-09T00:00:00.000Z"))).toBe(true);
+  it("FR-11: a report resolved before this rule existed is never closed automatically, and can still be answered", () => {
+    const old = repair({ resolvedAt: null, updatedAt: "2026-06-01T08:00:00.000Z" });
+    expect(autoCloseAt(old)).toBeNull();
+    expect(autoCloseDue(old, day(400))).toBe(false);
+    expect(effectiveStatus(old, day(400))).toBe("resolved");
+    expect(confirmProblem(owner, old, day(400))).toBeNull();
+    expect(notFixedProblem(owner, old, day(400))).toBeNull();
   });
   it("FR-11: resolving again starts the seven days again", () => {
     const again = repair({ resolvedAt: day(5).toISOString() });
     expect(autoCloseDue(again, day(8))).toBe(false);
     expect(autoCloseDue(again, day(12))).toBe(true);
-  });
-  it("FR-11: the daily job looks for reports resolved seven days ago or earlier", () => {
-    expect(autoCloseCutoff(new Date("2026-11-27T10:00:00.000Z"))).toBe(RESOLVED);
   });
 });
 

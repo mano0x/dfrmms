@@ -39,31 +39,31 @@ export type Repair = {
   studentId: string;
   status: string;
   assignedToId?: string | null;
-  /** When the report was last marked as resolved. Null on reports resolved before this was stored. */
+  /** When the report was last marked as resolved. Null on reports resolved before this rule existed. */
   resolvedAt: string | null;
   updatedAt: string;
   notFixedCount: number;
 };
 
-/** The moment the seven days began. Reports resolved before `resolvedAt` existed use their last change. */
-export const resolvedSince = (report: Pick<Repair, "resolvedAt" | "updatedAt">): Date => new Date(report.resolvedAt ?? report.updatedAt);
-
-/** The moment from which a resolved report counts as closed. */
-export const autoCloseAt = (report: Pick<Repair, "resolvedAt" | "updatedAt">): Date => new Date(resolvedSince(report).getTime() + AUTO_CLOSE_DAYS * DAY_MS);
+/**
+ * The moment from which a resolved report counts as closed, or null.
+ *
+ * A report that was resolved before this rule existed has no stored time of
+ * resolving. It is never closed automatically: the rule is not applied to
+ * the past, and the resident can still answer whenever they like.
+ */
+export const autoCloseAt = (report: Pick<Repair, "resolvedAt">): Date | null =>
+  report.resolvedAt ? new Date(new Date(report.resolvedAt).getTime() + AUTO_CLOSE_DAYS * DAY_MS) : null;
 
 /** True when the report is still stored as resolved but the seven days are over. */
-export const autoCloseDue = (report: Pick<Repair, "status" | "resolvedAt" | "updatedAt">, now: Date = new Date()): boolean =>
-  report.status === "resolved" && now.getTime() >= autoCloseAt(report).getTime();
+export function autoCloseDue(report: Pick<Repair, "status" | "resolvedAt">, now: Date = new Date()): boolean {
+  const at = autoCloseAt(report);
+  return report.status === "resolved" && at !== null && now.getTime() >= at.getTime();
+}
 
 /** The status as every reader should see it. */
-export const effectiveStatus = (report: Pick<Repair, "status" | "resolvedAt" | "updatedAt">, now: Date = new Date()): string =>
+export const effectiveStatus = (report: Pick<Repair, "status" | "resolvedAt">, now: Date = new Date()): string =>
   autoCloseDue(report, now) ? "closed" : report.status;
-
-/**
- * Reports resolved at or before this moment are due for automatic closing.
- * Used by the daily job to find them in the database.
- */
-export const autoCloseCutoff = (now: Date = new Date()): string => new Date(now.getTime() - AUTO_CLOSE_DAYS * DAY_MS).toISOString();
 
 const isOwner = (actor: Actor, report: Pick<Repair, "studentId">) => actor.role === "student" && report.studentId === actor.id;
 

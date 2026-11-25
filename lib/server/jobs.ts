@@ -23,6 +23,7 @@ import { Query } from "node-appwrite";
 import { adminServices } from "../appwrite/server";
 import { DATABASE_ID, TABLES } from "../appwrite/config";
 import { recordEvent } from "./events";
+import { closeUnanswered } from "./reports";
 
 /** True when the Authorization header carries exactly the configured secret. Compared in constant time. */
 export function isCronCall(authorization: string | null, secret: string | undefined = process.env.CRON_SECRET): boolean {
@@ -37,7 +38,7 @@ export const LEFTOVER_LOCK_AGE_MS = 10 * 60 * 1000;
 
 export const leftoverBefore = (now: Date = new Date()): string => new Date(now.getTime() - LEFTOVER_LOCK_AGE_MS).toISOString();
 
-export type DailyResult = { limitLocksRemoved: number; allocationLocksRemoved: number };
+export type DailyResult = { limitLocksRemoved: number; allocationLocksRemoved: number; reportsClosed: number };
 
 async function removeOlderThan(tableId: string, column: "createdAt" | "expiresAt", before: string): Promise<number> {
   const { tablesDB } = adminServices();
@@ -62,10 +63,12 @@ export async function runDailyJob(now: Date = new Date()): Promise<DailyResult> 
     // Rows of the limit table say themselves when they stop being of use; a lock row there expires 30 seconds after it was made.
     limitLocksRemoved: await removeOlderThan(TABLES.limitPlaces, "expiresAt", before),
     allocationLocksRemoved: await removeOlderThan(TABLES.allocationLocks, "createdAt", before),
+    // Resolved reports nobody answered within seven days: the closing every reader already sees is written down.
+    reportsClosed: await closeUnanswered(now),
   };
   await recordEvent({
     type: "job-run", outcome: "ok", targetType: "daily-job",
-    detail: `Leftover locks removed: ${result.limitLocksRemoved} for limits, ${result.allocationLocksRemoved} for room allocation.`,
+    detail: `Leftover locks removed: ${result.limitLocksRemoved} for limits, ${result.allocationLocksRemoved} for room allocation. Unanswered reports closed: ${result.reportsClosed}.`,
   });
   return result;
 }

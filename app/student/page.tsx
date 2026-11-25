@@ -10,6 +10,7 @@ import {
   type Report,
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
+import { RepairAnswer } from "@/components/RepairAnswer";
 import {
   Alert, AppShell, CATEGORIES, Card, Detail, EmptyState, Field, FilePicker, Icon,
   LoadingScreen, PageHeader, PriorityBadge, STATUSES, STATUS_BAR, Spinner, StatGrid,
@@ -550,9 +551,17 @@ export default function StudentDashboard() {
                     </p>
                   </div>
 
+                  <RepairAnswer
+                    report={selectedReport}
+                    onAnswered={(updated) => {
+                      list.replace(updated);
+                      setSelectedReport(updated);
+                    }}
+                  />
+
                   <div className="mt-6">
                     <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">History</p>
-                    <Timeline reportId={selectedReport.id} />
+                    <Timeline reportId={selectedReport.id} refreshKey={new Date(selectedReport.updatedAt).getTime()} />
                   </div>
 
                   {selectedReport.photoFileId && (

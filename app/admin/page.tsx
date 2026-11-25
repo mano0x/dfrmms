@@ -552,6 +552,12 @@ export default function AdminDashboard() {
                 <dl className="mt-5 grid gap-4 sm:grid-cols-2">
                   <Detail label="Reported by">{selected.studentName || "—"}</Detail>
                   <Detail label="Location">{selected.dormitory || "—"} · Room {selected.roomNumber || "—"}</Detail>
+                  {(selected.rating || selected.notFixedCount > 0) && (
+                    <Detail label="Resident's answer">
+                      {selected.rating ? `Rated ${selected.rating} of 5` : "No rating"}
+                      {selected.notFixedCount > 0 && ` · sent back as not fixed ${selected.notFixedCount} time${selected.notFixedCount === 1 ? "" : "s"}`}
+                    </Detail>
+                  )}
                   <Detail label="Submitted">{formatDateTime(selected.createdAt)}</Detail>
                   <Detail label="Classification">
                     {URGENCIES.find((u) => u.value === selected.urgency)?.label ?? "—"}

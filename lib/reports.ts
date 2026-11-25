@@ -39,6 +39,9 @@ export const changeStatus = (reportId: string, status: string) => patch(reportId
 export const assignTechnician = (reportId: string, technicianId: string | null) => patch(reportId, { action: "assign", technicianId });
 export const overridePriority = (reportId: string, priority: string, reason: string) => patch(reportId, { action: "priority", priority, reason });
 export const saveResolutionNote = (reportId: string, note: string) => patch(reportId, { action: "note", note });
+/** The resident's answer after a repair. */
+export const confirmRepair = (reportId: string, rating: number | null) => patch(reportId, { action: "confirm", rating });
+export const reportNotFixed = (reportId: string, reason: string) => patch(reportId, { action: "not-fixed", reason });
 
 export const fetchTimeline = async (reportId: string) =>
   (await api<{ history: LogEntry[] }>(`/api/reports/${encodeURIComponent(reportId)}/history`)).history;

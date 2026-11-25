@@ -16,6 +16,10 @@ function describe(e: LogEntry): { text: string; detail?: string } {
       return { text: `Status changed from ${statusLabel(e.from ?? undefined)} to ${statusLabel(e.to ?? undefined)}` };
     case "assignment":
       return { text: e.to ? `Assigned to ${e.to}` : `Unassigned${e.from ? ` from ${e.from}` : ""}` };
+    case "confirmed":
+      return e.actorRole ? { text: "Repair confirmed by the resident; report closed", detail: e.note ?? undefined } : { text: "Closed automatically", detail: e.note ?? undefined };
+    case "not-fixed":
+      return { text: "Resident says it is not fixed; work continues", detail: e.note ? `Reason: ${e.note}` : undefined };
     case "priority":
       return { text: `Priority changed from ${e.from ?? "—"} to ${e.to ?? "—"}`, detail: e.note ? `Reason: ${e.note}` : undefined };
     default:

@@ -1,7 +1,7 @@
 import { HttpError, handle, ok, readJson } from "@/lib/server/http";
 import { requireCaller } from "@/lib/server/session";
 import {
-  assignTechnician, editReport, forDisplay, getReportFor, overridePriority, saveNote, setStatus,
+  assignTechnician, confirmRepair, editReport, forDisplay, getReportFor, overridePriority, reportNotFixed, saveNote, setStatus,
 } from "@/lib/server/reports";
 
 type Context = { params: Promise<{ id: string }> };
@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: Context) {
   return handle(async () => {
     const guard = await requireCaller(request, ["student", "technician", "admin"]);
     if (guard.response) return guard.response;
-    return ok({ report: await forDisplay(await getReportFor(guard.caller, (await params).id)) });
+    return ok({ report: await forDisplay(guard.caller, await getReportFor(guard.caller, (await params).id)) });
   });
 }
 
@@ -23,6 +23,8 @@ export async function GET(request: Request, { params }: Context) {
  *   { action: "assign", technicianId | null }                                administrator
  *   { action: "priority", priority, reason }                                 administrator
  *   { action: "note", note }                                                 assigned technician / administrator
+ *   { action: "confirm", rating? }                                           resident (owner), on a resolved report
+ *   { action: "not-fixed", reason }                                          resident (owner), on a resolved report
  */
 export async function PATCH(request: Request, { params }: Context) {
   return handle(async () => {
@@ -35,15 +37,19 @@ export async function PATCH(request: Request, { params }: Context) {
 
     switch (body.action) {
       case "edit":
-        return ok({ report: await forDisplay(await editReport(caller, id, body)) });
+        return ok({ report: await forDisplay(caller, await editReport(caller, id, body)) });
       case "status":
-        return ok({ report: await forDisplay(await setStatus(caller, id, body.status)) });
+        return ok({ report: await forDisplay(caller, await setStatus(caller, id, body.status)) });
       case "assign":
-        return ok({ report: await forDisplay(await assignTechnician(caller, id, body.technicianId ?? null)) });
+        return ok({ report: await forDisplay(caller, await assignTechnician(caller, id, body.technicianId ?? null)) });
       case "priority":
-        return ok({ report: await forDisplay(await overridePriority(caller, id, body)) });
+        return ok({ report: await forDisplay(caller, await overridePriority(caller, id, body)) });
       case "note":
-        return ok({ report: await forDisplay(await saveNote(caller, id, body.note)) });
+        return ok({ report: await forDisplay(caller, await saveNote(caller, id, body.note)) });
+      case "confirm":
+        return ok({ report: await forDisplay(caller, await confirmRepair(caller, id, body)) });
+      case "not-fixed":
+        return ok({ report: await forDisplay(caller, await reportNotFixed(caller, id, body)) });
       default:
         throw new HttpError(400, "Unknown action.");
     }

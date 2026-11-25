@@ -80,3 +80,27 @@ describe("who is told about a fault report", () => {
     expect(to(out, "s1")?.body).toContain("...");
   });
 });
+
+describe("who is told about the resident's answer", () => {
+  it("FR-11: confirming tells the assigned technician, not the resident who confirmed", () => {
+    const out = notificationsForChanges([{ type: "confirmed", from: "resolved", to: "closed" }], assigned, assigned, "s1");
+    expect(who(out)).toEqual(["t1"]);
+    expect(to(out, "t1")).toMatchObject({ type: "fault-confirmed", title: "The resident confirmed the repair" });
+  });
+  it("FR-11: an automatic closing tells the resident and the technician that no answer came", () => {
+    const out = notificationsForChanges([{ type: "confirmed", from: "resolved", to: "closed" }], assigned, assigned, "system");
+    expect(who(out)).toEqual(["s1", "t1"]);
+    expect(to(out, "s1")?.body).toBe('"Ceiling light flickers" was closed because no answer came within 7 days.');
+    expect(to(out, "t1")?.title).toBe("A report assigned to you was closed");
+  });
+  it("FR-11: not fixed tells the assigned technician, without the reason", () => {
+    const out = notificationsForChanges([{ type: "not-fixed", from: "resolved", to: "in-progress" }], assigned, assigned, "s1", ["a1"]);
+    expect(who(out)).toEqual(["t1"]);
+    expect(to(out, "t1")).toMatchObject({ type: "fault-not-fixed", body: 'Open "Ceiling light flickers" in Dormitory A, room 204 to read why.', link: "/technician" });
+  });
+  it("FR-11: not fixed on a report without a technician tells the administrators instead", () => {
+    const out = notificationsForChanges([{ type: "not-fixed", from: "resolved", to: "in-progress" }], report(), report(), "s1", ["a1", "a2"]);
+    expect(who(out)).toEqual(["a1", "a2"]);
+    expect(to(out, "a1")?.link).toBe("/admin");
+  });
+});
