@@ -16,6 +16,7 @@ import { ROLES, type Role } from "../maintenance";
 import { sessionServices } from "../appwrite/server";
 import { fail, isSameOrigin } from "./http";
 import { recordEvent } from "./events";
+import { SESSION_UNAVAILABLE_MESSAGE, lookUpSession } from "../session-rules";
 
 export const SESSION_COOKIE = "dfrmms_session";
 const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60; // 12 hours
@@ -40,22 +41,44 @@ export function roleFromLabels(labels: string[] | undefined): Role | null {
   return ROLES.find((r) => labels?.includes(r)) ?? null;
 }
 
+/** The identity service could not be asked who holds the session. Nobody is let in; the caller is told to try again. */
+export class SessionUnavailable extends Error {
+  constructor() {
+    super(SESSION_UNAVAILABLE_MESSAGE);
+    this.name = "SessionUnavailable";
+  }
+}
+
 /**
  * The signed-in caller of the current request, or null when there is no
  * valid session (no cookie, expired or revoked session, account without a role).
+ *
+ * Throws SessionUnavailable when the identity service could not be reached,
+ * also on a second try: that is not the same as "not signed in"
+ * (lib/session-rules.ts). The failure is written to the server log by its
+ * kind only; the session value is never logged.
  */
 export async function getCaller(): Promise<Caller | null> {
   const secret = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!secret) return null;
-  try {
-    const user = await sessionServices(secret).account.get();
-    const role = roleFromLabels(user.labels);
-    if (!role || user.status === false) return null;
-    return { id: user.$id, name: user.name || user.email, email: user.email, role, sessionSecret: secret };
-  } catch {
-    return null;
-  }
+  const result = await lookUpSession(
+    () => sessionServices(secret).account.get(),
+    (description, attempt) => console.error(`The session could not be checked (attempt ${attempt}):`, description),
+  );
+  if (result.state === "unavailable") throw new SessionUnavailable();
+  if (result.state === "not-signed-in") return null;
+  const user = result.value;
+  const role = roleFromLabels(user.labels);
+  if (!role || user.status === false) return null;
+  return { id: user.$id, name: user.name || user.email, email: user.email, role, sessionSecret: secret };
 }
+
+/** The answer to a request whose session could not be checked: "try again", with a hint when. */
+export const sessionUnavailableResponse = (): Response => {
+  const response = fail(503, SESSION_UNAVAILABLE_MESSAGE);
+  response.headers.set("Retry-After", "2");
+  return response;
+};
 
 type Guarded = { caller: Caller; response?: undefined } | { caller?: undefined; response: Response };
 
@@ -69,7 +92,13 @@ export async function requireCaller(request: Request, allowed: readonly Role[]):
     await recordEvent({ type: "origin-refused", outcome: "refused", detail: `${request.method} ${new URL(request.url).pathname}` }, request);
     return { response: fail(403, "Request blocked: it did not come from this site.") };
   }
-  const caller = await getCaller();
+  let caller: Caller | null;
+  try {
+    caller = await getCaller();
+  } catch (err) {
+    if (err instanceof SessionUnavailable) return { response: sessionUnavailableResponse() };
+    throw err;
+  }
   if (!caller) return { response: fail(401, "You are not signed in.") };
   if (!allowed.includes(caller.role)) {
     // A signed-in account asked for something its role may not do. The path is recorded, never the body.

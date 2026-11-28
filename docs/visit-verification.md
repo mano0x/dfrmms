@@ -222,7 +222,9 @@ no test forces it).
 - Older behaviour seen during the test run, not changed here: when the
   server cannot read the account behind a session (also because the
   connection to Appwrite failed), it answers "not signed in" and writes
-  nothing to its log. A resident would have to try again.
+  nothing to its log. A resident would have to try again. **Changed on
+  2026-11-28** after module B4: see "Checking the session" in
+  `docs/platform.md`.
 
 ## How it works in ten lines
 

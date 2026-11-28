@@ -99,7 +99,7 @@ requirements. Until then only the prefix exists.
 | SEC-01 | Authentication by e-mail and password; no passwords stored by the application; one message for unknown address and wrong password | Built | | |
 | SEC-02 | Brute-force protection that an attacker cannot turn against the account owner; a limit per network address | Partly | B7 | Failures are counted per e-mail address only, so anyone can lock a known account; no limit per network address. |
 | SEC-03 | Session secret only in an httpOnly, Secure, SameSite=Strict cookie; revoked at sign-out | Built | | |
-| SEC-04 | Identity, role and object checks on the server for every route | Built for the routes that exist | every module | Checked again for each new route. |
+| SEC-04 | Identity, role and object checks on the server for every route | Built for the routes that exist | every module | Checked again for each new route. Since 2026-11-28 a failure to reach the identity service is answered "try again" (503) and logged, not "not signed in" (`docs/platform.md`, section 9a). |
 | SEC-05 | Tables and buckets grant the browser nothing | Built | B4 | The last leftover, a create permission for the `student` label on the bucket `dormitory-fault-photos`, was removed on 2026-11-28 with the owner's approval (D40); both buckets were read back with no permissions. An API test checks it. |
 | SEC-06 | Requests that change data must come from this site's origin | Built | | |
 | SEC-07 | Schema validation and size limits on the server | Built for the routes that exist | every module | |

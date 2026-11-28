@@ -1,11 +1,21 @@
 import { ok } from "@/lib/server/http";
-import { getCaller } from "@/lib/server/session";
+import { SessionUnavailable, getCaller, sessionUnavailableResponse } from "@/lib/server/session";
 import { getProfile } from "@/lib/server/profiles";
 import { residenceFor } from "@/lib/server/accommodation";
 
-/** The signed-in user, or `{ user: null }` when there is no valid session. */
+/**
+ * The signed-in user, or `{ user: null }` when there is no valid session.
+ * When the session could not be checked at all the answer is "try again"
+ * (503), not "nobody is signed in".
+ */
 export async function GET() {
-  const caller = await getCaller();
+  let caller: Awaited<ReturnType<typeof getCaller>>;
+  try {
+    caller = await getCaller();
+  } catch (err) {
+    if (err instanceof SessionUnavailable) return sessionUnavailableResponse();
+    throw err;
+  }
   if (!caller) return ok({ user: null });
   const [profile, residence] = await Promise.all([getProfile(caller.id), caller.role === "student" ? residenceFor(caller.id) : null]);
   return ok({

@@ -237,6 +237,38 @@ During the test runs of this module the connection from the developer's
 computer to Appwrite stalled or reset several times. The build plan records
 each run, what failed and why.
 
+## 9a. Checking the session (added 2026-11-28)
+
+Every route asks the identity service (Appwrite) who holds the session
+cookie. Until 2026-11-28 any failure of that question was answered as "not
+signed in", silently. Two full test runs showed the effect: a signed-in
+test account was told "not signed in" while many requests were under way,
+and the server log held nothing to explain it.
+
+The rules are now in `lib/session-rules.ts` (pure, 9 unit tests in
+`tests/unit/session-rules.test.ts`):
+
+| Case | Answer |
+|------|--------|
+| The service knows the session | the caller |
+| The service says the session or account is not valid (401, 403, 404) | "not signed in" (401), at once |
+| The service cannot be reached, times out, or answers with a fault of its own | one more try after 250 ms; then "try again" (503), and a line in the server log with the kind of error |
+
+In no case is anybody let in without a clear answer naming the account: the
+change only stops a signed-in person from being called signed out. The log
+line holds the kind of error (for example `ECONNRESET` or
+`database_unavailable, code 503`), never the session value.
+
+The pages ask "who is signed in?" once more when they get the 503, before
+showing the sign-in page. Signing out goes ahead even when the session
+cannot be checked.
+
+Not tested: the 503 through the running application. It needs the identity
+service to fail, which the tests cannot cause; the rule is unit-tested with
+a lookup that fails on purpose. Whether this was the cause of the two "not
+signed in" answers in the test runs is likely but not proven: before this
+change nothing was logged.
+
 ## 10. Limitations and not implemented
 
 - The times in the event viewer are shown in the browser's own time zone,

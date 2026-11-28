@@ -313,3 +313,26 @@ the declaration as well.
 - Read `removeUnattachedUploads` and `mayRemoveUpload`: this is the only
   code that deletes files. Check that a failed lookup keeps the file.
 - The API tests passed in two runs, not in one (build plan, 2026-11-28).
+
+## 2026-11-28: correction of the session check
+
+**Module:** none (decision D41, between B4 and B5).
+
+**What the AI generated or changed**
+
+- Wrote `lib/session-rules.ts` with 9 unit tests, and changed
+  `lib/server/session.ts`, the routes `/api/auth/me` and
+  `/api/auth/logout`, and `lib/AuthContext.tsx`.
+
+**How the problem was found**
+
+- Two full API test runs each had one signed-in test account answered "not
+  signed in". The AI read the session check and saw that any failure was
+  answered that way and nothing was logged. That this caused the two answers
+  is likely, not proven.
+
+**What the author must review and verify**
+
+- Read `classifyLookupError`: which answers count as "not signed in" is a
+  security decision. Check that no failure can ever produce a caller.
+- The 503 answer was not seen through the running application.

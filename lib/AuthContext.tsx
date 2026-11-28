@@ -1,6 +1,6 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { api } from "./api";
+import { ApiError, api } from "./api";
 import type { Role } from "./maintenance";
 
 export type AuthUser = {
@@ -35,13 +35,28 @@ const AuthContext = createContext<AuthContextType>({
  * which reads the httpOnly session cookie; the role shown here is only for
  * choosing what to display - every action is authorised again on the server.
  */
+/**
+ * Ask the server who is signed in. When the server answers that it could
+ * not check the session just now (503), ask once more after a moment,
+ * instead of treating a signed-in person as signed out.
+ */
+async function whoIsSignedIn(): Promise<AuthUser | null> {
+  try {
+    return (await api<{ user: AuthUser | null }>("/api/auth/me")).user;
+  } catch (err) {
+    if (!(err instanceof ApiError) || err.status !== 503) throw err;
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    return (await api<{ user: AuthUser | null }>("/api/auth/me")).user;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const { user: current } = await api<{ user: AuthUser | null }>("/api/auth/me");
+      const current = await whoIsSignedIn();
       setUser(current);
       return current;
     } catch {
@@ -60,8 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Ask the server once, when the application loads.
   useEffect(() => {
     let active = true;
-    api<{ user: AuthUser | null }>("/api/auth/me")
-      .then(({ user: current }) => { if (active) setUser(current); })
+    whoIsSignedIn()
+      .then((current) => { if (active) setUser(current); })
       .catch(() => { if (active) setUser(null); })
       .finally(() => { if (active) setLoading(false); });
     return () => {
