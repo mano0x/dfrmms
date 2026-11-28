@@ -8,7 +8,7 @@ Status on 2026-11-28: implemented; unit tests, lint, type-check and build
 pass; the bucket permission of section 5 was removed and `sharp` was
 declared on 2026-11-28. All 322 API tests of the project have passed on
 this code on that day, in two runs and not in a single one (section 7). An
-upload through the report form has not been tried in a browser. Not merged into `main` and not deployed.
+upload through the report form was checked in a browser on the same day. Not merged into `main` and not deployed.
 
 ## 1. Purpose
 
@@ -148,8 +148,15 @@ test depends on it; that file alone afterwards: 8 of 8. The cause is the
 older weakness described in `docs/visit-verification.md` (a failed account
 lookup is answered as "not signed in"), not this module.
 
-Not tested: an upload through the report form in a browser; a picture near
-the 40-million-pixel limit; the time and memory
+Checked by hand in a browser on 2026-11-28, with one report of a test
+resident that was created for the check and removed afterwards: a picture
+uploaded through the report form shows in the resident's dialog and on the
+technician's card, as a JPEG without an EXIF block, served with `nosniff`
+and a private cache header.
+
+Not tested: in the browser, reaching a limit, a refused file and free-item
+photos (the API tests cover these on the server); a picture near the
+40-million-pixel limit; the time and memory
 the re-encoding needs on Vercel; photos stored before this module (see
 section 8).
 
