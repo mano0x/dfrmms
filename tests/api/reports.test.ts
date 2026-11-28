@@ -318,6 +318,9 @@ describe("names follow the sign-in account", () => {
     const seen = (await call(`/api/reports/${reportId}`, { cookie: admin })).data.report;
     expect(seen).toMatchObject({ assignedToId: "test-tech2", assignedTo: "Technician Renamed" });
     // The renamed technician can still work on the report: assignment is by account ID.
+    // (Since B3 work starts through a visit; here an authorised emergency entry.)
+    expect((await patch(admin, reportId, { action: "authorise-entry", reason: "Test: the resident is away for the week." })).status).toBe(200);
+    expect((await patch(tech2, reportId, { action: "start", mode: "emergency" })).status).toBe(200);
     const resolved = await patch(tech2, reportId, { action: "status", status: "resolved" });
     expect(resolved.status).toBe(200);
     expect(resolved.data.report.assignedTo).toBe("Technician Renamed");

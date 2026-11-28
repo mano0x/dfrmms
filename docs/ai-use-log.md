@@ -263,6 +263,8 @@ the declaration as well.
 
 - One unit test failed on its first run because of the test's own value;
   the test value was changed, not the code.
+- One older API test was missed when the others were changed for the new
+  status. Found by the full test run and corrected.
 - A cancelled code was first refused with the words "too many wrong
   attempts". Found while writing the API test for reassignment; the wording
   now fits both cases.
@@ -277,6 +279,6 @@ the declaration as well.
   by hand; entry in absence is asked per report and means "no" if left out.
 - The limits (10 minutes, 5 guesses, 3 codes an hour, 3 "no access" a day)
   come from the brief or are the assistant's proposals; they are constants.
-- The API tests of this module had not been run when this entry was
-  written. Do not rely on them until the build plan records a run.
+- The API tests passed in two runs, not in one (build plan, 2026-11-28).
+  Repeat `npm run test:api` on a stable connection before relying on it.
 - Try all four ways in yourself, with test accounts, before the defence.

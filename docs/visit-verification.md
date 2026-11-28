@@ -5,7 +5,8 @@ Everything under a heading exists in the code. Section 9 says exactly which
 tests were run and what was not tested.
 
 Status on 2026-11-28: implemented; unit tests, lint, type-check and build
-pass. The API tests are written and **have not been run yet**; the pages have
+pass. All 303 API tests of the project have passed on this code on
+2026-11-28, in two runs and not in a single one (section 9). The pages have
 not been looked at in a browser. Not merged into `main` and not deployed.
 
 ## 1. Purpose
@@ -182,9 +183,15 @@ refused; a sixth guess fails even with the right code; an expired or reused
 code fails; reassignment cancels the code; the absence and emergency ways
 need what they claim and leave log entries; and the refusals without a
 session, from another site, for another resident, for a field the caller
-must not set, over a limit and for invalid input. **It has not been run.**
-Four older API test files were changed for the new status and have not been
-run since either.
+must not set, over a limit and for invalid input. Run on 2026-11-28 against
+a local development server and the Appwrite project: 44 of 44.
+
+Four older API test files were changed on purpose for the new status. The
+full run on 2026-11-28 was 291 of 303: eleven of the twelve files passed
+completely. In `reports.test.ts` one test had not been updated for this
+module, and one request of a signed-in test resident was answered "not
+signed in", which made the ten tests after it fail too. With the one test
+corrected, that file alone: 24 of 24.
 
 Not tested: the pages in a browser; a screen reader; two guesses arriving at
 the same moment (the design is described in section 6, no test forces it).
@@ -202,6 +209,10 @@ the same moment (the design is described in section 6, no test forces it).
 - An emergency authorisation has no time limit of its own; it ends when it
   is used, or when the technician or the status changes.
 - Faults in shared areas: the rule exists, the choice comes with B5.
+- Older behaviour seen during the test run, not changed here: when the
+  server cannot read the account behind a session (also because the
+  connection to Appwrite failed), it answers "not signed in" and writes
+  nothing to its log. A resident would have to try again.
 
 ## How it works in ten lines
 
