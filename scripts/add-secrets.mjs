@@ -19,6 +19,8 @@ const SECRETS = {
   DATA_ENCRYPTION_KEY: () => `k1:${randomBytes(32).toString("base64")}`,
   // Protects the daily job route.
   CRON_SECRET: () => randomBytes(32).toString("hex"),
+  // Keyed hash of visit codes (module B3).
+  VISIT_CODE_SECRET: () => randomBytes(32).toString("hex"),
 };
 
 if (!existsSync(FILE)) {

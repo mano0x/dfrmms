@@ -152,7 +152,7 @@ export default function TechnicianDashboard() {
             const open = expandedId === r.id;
             const busy = saving === r.id;
             const assignedToMe = isAssignedTo(r, me);
-            const nextStatuses = allowedNextStatuses("technician", r.status);
+            const nextStatuses = allowedNextStatuses("technician", r.status, !!(r.assignedToId || r.assignedTo));
             return (
               <li
                 key={r.id}

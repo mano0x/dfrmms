@@ -12,7 +12,7 @@ import { z } from "zod";
 export const ROLES = ["student", "technician", "admin"] as const;
 export type Role = (typeof ROLES)[number];
 
-export const STATUS_VALUES = ["open", "in-progress", "resolved", "closed"] as const;
+export const STATUS_VALUES = ["open", "assigned", "in-progress", "resolved", "closed"] as const;
 export type Status = (typeof STATUS_VALUES)[number];
 
 export const PRIORITY_VALUES = ["critical", "high", "medium", "low"] as const;
@@ -48,35 +48,60 @@ export function priorityForClassification(classification: string): Priority {
 /* ------------------------------------------------------------------ */
 
 /**
- * Allowed status changes per role. A report normally moves
- * open -> in-progress -> resolved -> closed. Technicians do the repair work;
- * only administrators can close a report or reopen a closed one.
+ * A report normally moves
+ *   open -> assigned -> in-progress -> resolved -> closed.
+ *
+ * "Assigned" means a technician is named but has not started. "In progress"
+ * means the technician was at the place of the fault and work started. No
+ * status change leads from assigned to in progress: that step is taken only
+ * by a verified visit (lib/visit.ts), so nobody, not even an administrator,
+ * can simply declare that work has started.
  */
-const TRANSITIONS: Record<Exclude<Role, "student">, Record<Status, Status[]>> = {
-  technician: {
-    open: ["in-progress"],
-    "in-progress": ["resolved"],
-    resolved: ["in-progress"], // repair did not hold: resume work
-    closed: [],
-  },
-  admin: {
-    open: ["in-progress", "closed"],
-    "in-progress": ["resolved", "open", "closed"],
-    resolved: ["closed", "in-progress"],
-    closed: ["open"], // reopen
-  },
-};
 
-export function allowedNextStatuses(role: Role | null | undefined, from: string): Status[] {
-  if (role !== "technician" && role !== "admin") return [];
-  return TRANSITIONS[role][from as Status] ?? [];
+/** Where a report waits when no work is going on: with its technician, or in the open queue. */
+export const restingStatus = (hasTechnician: boolean): Status => (hasTechnician ? "assigned" : "open");
+
+/**
+ * The statuses this role may set directly on a report in status `from`.
+ * Technicians mark their work as resolved, or take a resolved report back
+ * (which needs a new visit). Only administrators close a report, reopen a
+ * closed one, or send work back to the queue.
+ */
+export function allowedNextStatuses(role: Role | null | undefined, from: string, hasTechnician: boolean): Status[] {
+  const queue = restingStatus(hasTechnician);
+  if (role === "technician") {
+    if (from === "in-progress") return ["resolved"];
+    if (from === "resolved") return hasTechnician ? ["assigned"] : []; // repair did not hold: visit again
+    return [];
+  }
+  if (role === "admin") {
+    if (from === "open" || from === "assigned") return from === queue ? ["closed"] : [queue, "closed"]; // the first case repairs a report whose status and technician disagree
+    if (from === "in-progress") return ["resolved", queue, "closed"];
+    if (from === "resolved") return ["closed", queue];
+    if (from === "closed") return [queue]; // reopen
+  }
+  return [];
 }
 
-export function canChangeStatus(role: Role | null | undefined, from: string, to: string): boolean {
-  return allowedNextStatuses(role, from).includes(to as Status);
+export function canChangeStatus(role: Role | null | undefined, from: string, to: string, hasTechnician: boolean): boolean {
+  return allowedNextStatuses(role, from, hasTechnician).includes(to as Status);
 }
 
-export const isActiveStatus = (status: string) => status === "open" || status === "in-progress";
+/**
+ * The status of a report after its technician was set, changed or removed.
+ * Without a technician an unfinished report is open. With a new technician
+ * it is assigned, also when work had started: the new person has not been
+ * verified at the door. A resolved or closed report keeps its status.
+ */
+export function statusAfterAssignment(status: string, before: string | null | undefined, after: string | null | undefined): string {
+  if (status === "resolved" || status === "closed") return status;
+  if (!after) return "open";
+  if (status === "in-progress" && after === before) return status;
+  return "assigned";
+}
+
+/** Not yet repaired: these count towards the target time. */
+export const isActiveStatus = (status: string) => status === "open" || status === "assigned" || status === "in-progress";
 
 /* ------------------------------------------------------------------ */
 /* Assignment                                                          */
@@ -142,6 +167,8 @@ export const reportInputSchema = z.object({
   category: z.enum(CATEGORY_VALUES, { message: "Choose a valid category." }),
   urgency: z.enum(CLASSIFICATION_VALUES, { message: "Choose a maintenance classification." }),
   description: z.string().trim().min(10, "Describe the problem in at least 10 characters.").max(2000, "The description must be at most 2000 characters."),
+  /** May a technician enter the room when the resident is not there? Left out means no. */
+  entryAllowed: z.boolean({ message: "Say whether a technician may enter in your absence." }).optional().default(false),
 });
 export type ReportInput = z.infer<typeof reportInputSchema>;
 

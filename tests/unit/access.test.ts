@@ -51,25 +51,33 @@ describe("creating and editing reports", () => {
 });
 
 describe("changing status", () => {
-  it("lets the assigned technician follow the technician workflow", () => {
+  // Changed on purpose in module B3 (decision D6): work starts only through a verified visit, never through a status change.
+  it("FR-14: lets the assigned technician follow the technician workflow", () => {
     expect(canSetStatus(tomas, assigned(), "resolved")).toBe(true);
-    expect(canSetStatus(tomas, assigned({ status: "resolved" }), "in-progress")).toBe(true);
-    expect(canSetStatus(tomas, assigned({ status: "open" }), "in-progress")).toBe(true);
+    expect(canSetStatus(tomas, assigned({ status: "resolved" }), "assigned")).toBe(true);
   });
-  it("blocks a technician from closing, skipping a step, or touching other reports", () => {
+  it("FR-V: the assigned technician cannot declare that work has started", () => {
+    expect(canSetStatus(tomas, assigned({ status: "assigned" }), "in-progress")).toBe(false);
+    expect(canSetStatus(tomas, assigned({ status: "resolved" }), "in-progress")).toBe(false);
+    expect(canSetStatus(tomas, assigned({ status: "open" }), "in-progress")).toBe(false);
+    expect(canSetStatus(admin, assigned({ status: "assigned" }), "in-progress")).toBe(false);
+  });
+  it("FR-14: blocks a technician from closing, skipping a step, or touching other reports", () => {
     expect(canSetStatus(tomas, assigned(), "closed")).toBe(false);
-    expect(canSetStatus(tomas, assigned({ status: "open" }), "resolved")).toBe(false);
+    expect(canSetStatus(tomas, assigned({ status: "assigned" }), "resolved")).toBe(false);
     expect(canSetStatus(rasa, assigned(), "resolved")).toBe(false);
-    expect(canSetStatus(tomas, report(), "in-progress")).toBe(false); // unassigned
+    expect(canSetStatus(tomas, report(), "assigned")).toBe(false); // unassigned
   });
-  it("recognises older reports assigned by name only", () => {
-    const legacy = report({ assignedTo: "Tomas", assignedToId: null });
-    expect(canSetStatus(tomas, legacy, "in-progress")).toBe(true);
-    expect(canSetStatus(rasa, legacy, "in-progress")).toBe(false);
+  it("FR-14: recognises older reports assigned by name only", () => {
+    const legacy = report({ status: "in-progress", assignedTo: "Tomas", assignedToId: null });
+    expect(canSetStatus(tomas, legacy, "resolved")).toBe(true);
+    expect(canSetStatus(rasa, legacy, "resolved")).toBe(false);
   });
-  it("lets an administrator follow the administrator workflow on any report", () => {
+  it("FR-20: lets an administrator follow the administrator workflow on any report", () => {
     expect(canSetStatus(admin, report(), "closed")).toBe(true);
     expect(canSetStatus(admin, report({ status: "closed" }), "open")).toBe(true);
+    expect(canSetStatus(admin, assigned({ status: "closed" }), "assigned")).toBe(true); // reopened: waits with its technician
+    expect(canSetStatus(admin, assigned({ status: "closed" }), "open")).toBe(false);
     expect(canSetStatus(admin, report(), "resolved")).toBe(false); // not a valid step
     expect(canSetStatus(admin, report(), "archived")).toBe(false);
   });

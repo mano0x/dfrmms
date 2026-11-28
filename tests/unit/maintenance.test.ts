@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_PHOTO_BYTES, TARGET_HOURS, allowedNextStatuses, isAssignedTo, canChangeStatus, dueDate, firstError,
+  MAX_PHOTO_BYTES, TARGET_HOURS, allowedNextStatuses, isAssignedTo, canChangeStatus, isActiveStatus, restingStatus, statusAfterAssignment, dueDate, firstError,
   isOverdue, newUserSchema, priorityForClassification, priorityOverrideSchema,
   reportInputSchema, resolutionNoteSchema, targetLabel, validatePhoto,
 } from "../../lib/maintenance";
@@ -17,35 +17,93 @@ describe("priorityForClassification", () => {
 });
 
 describe("status workflow", () => {
-  it("lets a technician start, resolve and resume work", () => {
-    expect(canChangeStatus("technician", "open", "in-progress")).toBe(true);
-    expect(canChangeStatus("technician", "in-progress", "resolved")).toBe(true);
-    expect(canChangeStatus("technician", "resolved", "in-progress")).toBe(true);
+  // Changed on purpose in module B3 (decision D6): "in progress" now means a verified visit.
+  it("FR-14: lets a technician resolve work in progress and take a resolved report back for a new visit", () => {
+    expect(canChangeStatus("technician", "in-progress", "resolved", true)).toBe(true);
+    expect(canChangeStatus("technician", "resolved", "assigned", true)).toBe(true);
   });
-  it("does not let a technician close or reopen a report", () => {
-    expect(canChangeStatus("technician", "resolved", "closed")).toBe(false);
-    expect(canChangeStatus("technician", "closed", "open")).toBe(false);
-    expect(allowedNextStatuses("technician", "closed")).toEqual([]);
+  it("FR-V: nobody can set \"in progress\" directly; that step needs a verified visit", () => {
+    for (const role of ["technician", "admin"] as const)
+      for (const from of ["open", "assigned", "resolved", "closed"])
+        for (const hasTechnician of [true, false])
+          expect(canChangeStatus(role, from, "in-progress", hasTechnician), `${role} ${from}`).toBe(false);
   });
-  it("does not let a technician skip straight from open to resolved", () => {
-    expect(canChangeStatus("technician", "open", "resolved")).toBe(false);
+  it("FR-14: does not let a technician close or reopen a report", () => {
+    expect(canChangeStatus("technician", "resolved", "closed", true)).toBe(false);
+    expect(canChangeStatus("technician", "closed", "open", true)).toBe(false);
+    expect(allowedNextStatuses("technician", "closed", true)).toEqual([]);
   });
-  it("lets an administrator close and reopen reports", () => {
-    expect(canChangeStatus("admin", "resolved", "closed")).toBe(true);
-    expect(canChangeStatus("admin", "open", "closed")).toBe(true);
-    expect(canChangeStatus("admin", "closed", "open")).toBe(true);
+  it("FR-14: does not let a technician skip straight from assigned to resolved", () => {
+    expect(canChangeStatus("technician", "assigned", "resolved", true)).toBe(false);
+    expect(allowedNextStatuses("technician", "assigned", true)).toEqual([]);
+    expect(allowedNextStatuses("technician", "open", true)).toEqual([]);
+  });
+  it("FR-20: lets an administrator close and reopen reports", () => {
+    expect(canChangeStatus("admin", "resolved", "closed", true)).toBe(true);
+    expect(canChangeStatus("admin", "open", "closed", false)).toBe(true);
+    expect(canChangeStatus("admin", "assigned", "closed", true)).toBe(true);
+    expect(canChangeStatus("admin", "closed", "open", false)).toBe(true);
+  });
+  it("FR-20: a report an administrator sends back waits with its technician, or in the open queue without one", () => {
+    expect(restingStatus(true)).toBe("assigned");
+    expect(restingStatus(false)).toBe("open");
+    expect(allowedNextStatuses("admin", "closed", true)).toEqual(["assigned"]);
+    expect(allowedNextStatuses("admin", "closed", false)).toEqual(["open"]);
+    expect(allowedNextStatuses("admin", "in-progress", true)).toEqual(["resolved", "assigned", "closed"]);
+    expect(allowedNextStatuses("admin", "resolved", false)).toEqual(["closed", "open"]);
+    expect(canChangeStatus("admin", "closed", "open", true)).toBe(false);
+    expect(canChangeStatus("admin", "closed", "assigned", false)).toBe(false);
+  });
+  it("FR-20: an administrator can repair a report whose status and technician disagree", () => {
+    expect(allowedNextStatuses("admin", "open", true)).toEqual(["assigned", "closed"]); // an older report: open, but with a technician
+    expect(allowedNextStatuses("admin", "assigned", false)).toEqual(["open", "closed"]);
   });
   it("gives students and unknown roles no status changes", () => {
-    expect(allowedNextStatuses("student", "open")).toEqual([]);
-    expect(allowedNextStatuses(null, "open")).toEqual([]);
+    expect(allowedNextStatuses("student", "open", false)).toEqual([]);
+    expect(allowedNextStatuses(null, "open", false)).toEqual([]);
   });
   it("never allows a change to the same status", () => {
     for (const role of ["technician", "admin"] as const)
-      for (const s of ["open", "in-progress", "resolved", "closed"])
-        expect(canChangeStatus(role, s, s)).toBe(false);
+      for (const s of ["open", "assigned", "in-progress", "resolved", "closed"])
+        for (const hasTechnician of [true, false])
+          expect(canChangeStatus(role, s, s, hasTechnician)).toBe(false);
   });
   it("returns no options for an unknown current status", () => {
-    expect(allowedNextStatuses("admin", "archived")).toEqual([]);
+    expect(allowedNextStatuses("admin", "archived", false)).toEqual([]);
+  });
+  it("FR-18: assigning a technician to an open report makes it assigned, not in progress", () => {
+    expect(statusAfterAssignment("open", null, "t1")).toBe("assigned");
+    expect(statusAfterAssignment("assigned", "t1", "t2")).toBe("assigned");
+    expect(statusAfterAssignment("assigned", "t1", "t1")).toBe("assigned");
+  });
+  it("FR-18: removing the technician returns an unfinished report to the open queue", () => {
+    expect(statusAfterAssignment("assigned", "t1", null)).toBe("open");
+    expect(statusAfterAssignment("in-progress", "t1", null)).toBe("open");
+    expect(statusAfterAssignment("open", null, null)).toBe("open");
+  });
+  it("FR-V: a new technician on work in progress must be verified again; the same one need not", () => {
+    expect(statusAfterAssignment("in-progress", "t1", "t2")).toBe("assigned");
+    expect(statusAfterAssignment("in-progress", null, "t2")).toBe("assigned"); // was assigned by name only
+    expect(statusAfterAssignment("in-progress", "t1", "t1")).toBe("in-progress");
+  });
+  it("FR-18: a resolved or closed report keeps its status when the technician changes", () => {
+    for (const status of ["resolved", "closed"]) {
+      expect(statusAfterAssignment(status, "t1", "t2")).toBe(status);
+      expect(statusAfterAssignment(status, "t1", null)).toBe(status);
+    }
+  });
+  it("NFR-07: an assigned report still counts towards the target time", () => {
+    expect(isActiveStatus("open")).toBe(true);
+    expect(isActiveStatus("assigned")).toBe(true);
+    expect(isActiveStatus("in-progress")).toBe(true);
+    expect(isActiveStatus("resolved")).toBe(false);
+    expect(isActiveStatus("closed")).toBe(false);
+  });
+  it("FR-V: a report says whether entry in absence is allowed, and leaving it out means no", () => {
+    const base = { title: "Broken lamp", category: "electrical", urgency: "normal", description: "The lamp does not work." };
+    expect(reportInputSchema.parse(base).entryAllowed).toBe(false);
+    expect(reportInputSchema.parse({ ...base, entryAllowed: true }).entryAllowed).toBe(true);
+    for (const entryAllowed of ["yes", 1, null]) expect(reportInputSchema.safeParse({ ...base, entryAllowed }).success, String(entryAllowed)).toBe(false);
   });
 });
 

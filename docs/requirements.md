@@ -80,7 +80,7 @@ requirements. Until then only the prefix exists.
 |--------|--------|------|---------|-------|
 | FR-N | built | | Neighbour notices (15 requirements) | Built |
 | FR-F | built | | Free-item sharing (18 requirements) | Built |
-| FR-V | B3 | 2 | Technician visit verification with a one-time code | To build |
+| FR-V | B3 | 2 | Technician visit verification with a one-time code | In progress: rules and unit tests written; schema, server, pages to do |
 | FR-P | C1 | 10 | Profile and community roles | To build |
 | FR-I | C2 | 5 | Citizenship and identity documents | To build |
 | FR-E | C3 | 6 | Emergency information and helplines | To build |

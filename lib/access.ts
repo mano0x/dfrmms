@@ -42,8 +42,9 @@ export function canEditReport(actor: Actor, report: ReportAccessFields): boolean
  * a technician follows the technician workflow on reports assigned to them.
  */
 export function canSetStatus(actor: Actor, report: ReportAccessFields, to: string): boolean {
-  if (actor.role === "admin") return canChangeStatus("admin", report.status, to);
-  if (isAssignedTechnician(actor, report)) return canChangeStatus("technician", report.status, to);
+  const hasTechnician = !!(report.assignedToId || report.assignedTo);
+  if (actor.role === "admin") return canChangeStatus("admin", report.status, to, hasTechnician);
+  if (isAssignedTechnician(actor, report)) return canChangeStatus("technician", report.status, to, hasTechnician);
   return false;
 }
 

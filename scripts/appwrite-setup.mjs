@@ -44,7 +44,7 @@ const ROLES = ["student", "technician", "admin"];
 const CATEGORIES = ["electrical", "plumbing", "hvac", "structural", "internet", "furniture", "other"];
 const CLASSIFICATIONS = ["normal", "urgent", "emergency"];
 const PRIORITIES = ["critical", "high", "medium", "low"];
-const STATUSES = ["open", "in-progress", "resolved", "closed"];
+const STATUSES = ["open", "assigned", "in-progress", "resolved", "closed"];
 const NOTICE_CATEGORIES = ["noise", "shared-space", "cleanliness", "other"];
 const NOTICE_AREAS = ["corridor", "kitchen", "bathroom", "laundry", "common-room", "stairwell", "outdoor", "other"];
 const NOTICE_STATUSES = ["submitted", "under-review", "resolved", "closed"];
@@ -55,7 +55,7 @@ const ITEM_STATUSES = ["available", "reserved", "collected", "removed"];
 const RESERVATION_STATUSES = ["active", "cancelled", "expired", "collected"];
 const ALLOCATION_STATUSES = ["active", "ended", "cancelled"];
 // "confirmed" and "not-fixed" were added for module B2 (the resident's answer after a repair).
-const LOG_TYPES = ["created", "edited", "status", "assignment", "priority", "note", "confirmed", "not-fixed"];
+const LOG_TYPES = ["created", "edited", "status", "assignment", "priority", "note", "confirmed", "not-fixed", "visit-verified", "entered-in-absence", "emergency-entry", "entry-authorised", "no-access"];
 
 const text = (key, size, required = false) => ({ kind: "varchar", key, size, required });
 const choice = (key, elements, required = false) => ({ kind: "enum", key, elements, required });
@@ -112,6 +112,13 @@ const TABLES = [
       date("confirmedAt"),
       whole("rating"),
       whole("notFixedCount"),
+      // Module B3: the technician's visit. Whether the resident allowed entry
+      // in their absence; an administrator's emergency authorisation while it
+      // holds; when work really started and through which door.
+      flag("entryAllowed"),
+      date("entryAuthorisedAt"),
+      date("workStartedAt"),
+      text("entryMode", 20),
       text("assignedTo", 80),
       text("assignedToId", 36),
       text("resolutionNote", 1000),
@@ -440,6 +447,30 @@ const TABLES = [
       text("scope", 40, true),
       date("expiresAt", true),
       date("createdAt", true),
+    ],
+    indexes: [{ key: "expiresAt", type: TablesDBIndexType.Key, columns: ["expiresAt"] }],
+  },
+  {
+    // Module B3. At most one row per report: the row ID is the report's ID,
+    // so a new code replaces the old one. The code itself is never stored,
+    // only its keyed hash (HMAC-SHA-256 with a server secret, bound to the
+    // report and the technician). `issuedAt` holds the times of the last
+    // codes (at most three, separated by commas) for the hourly limit.
+    // Rows are of no use a day after `expiresAt`; the retention job removes
+    // them.
+    id: "visit_codes",
+    name: "Visit codes",
+    columns: [
+      text("ownerId", 36, true),
+      text("technicianId", 36, true),
+      text("codeHash", 64, true),
+      date("expiresAt", true),
+      whole("attempts"),
+      date("usedAt"),
+      date("voidedAt"),
+      text("issuedAt", 100),
+      date("createdAt", true),
+      date("updatedAt", true),
     ],
     indexes: [{ key: "expiresAt", type: TablesDBIndexType.Key, columns: ["expiresAt"] }],
   },

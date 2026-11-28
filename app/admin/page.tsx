@@ -208,7 +208,7 @@ export default function AdminDashboard() {
   const unassigned = list.summary.unassignedOpen;
   const filtersActive = search || filterStatus !== "all" || filterPriority !== "all" || overdueOnly;
 
-  const statusOptions = (r: Report) => [r.status, ...allowedNextStatuses("admin", r.status)];
+  const statusOptions = (r: Report) => [r.status, ...allowedNextStatuses("admin", r.status, !!(r.assignedToId || r.assignedTo))];
 
   return (
     <AppShell
