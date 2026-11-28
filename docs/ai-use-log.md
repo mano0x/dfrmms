@@ -236,3 +236,47 @@ the declaration as well.
   connection before relying on the result.
 - Try the answer box yourself once; the assistant's browser check used one
   test report and is described in the build plan.
+
+## 2026-11-28: B3, the technician's visit and the one-time code
+
+**Module:** B3.
+
+**What the AI generated or changed**
+
+- Proposed the workflow with the new status "assigned" (decisions D35 to
+  D38 in the build plan; D35 was the owner's choice between two options).
+- Wrote `lib/visit.ts` (rules) and `lib/server/visit-code.ts` (making and
+  hashing a code) with 35 unit tests, and changed the status rules in
+  `lib/maintenance.ts` and `lib/access.ts`.
+- Added the table `visit_codes`, four columns and six list values to the
+  setup script; the owner approved the check output before the setup ran.
+- Wrote `lib/server/visits.ts`, the route `/api/reports/[id]/visit-code`
+  and four actions on the report route; changed assignment, "not fixed",
+  the counts, the messages and the daily job for the new status.
+- Wrote three components and changed the three report pages.
+- Wrote `tests/api/visits.test.ts` (44 tests) and changed four older API
+  test files and two older unit test files on purpose, because behaviour
+  changed (an assigned report is no longer "in progress").
+- Wrote `docs/visit-verification.md`.
+
+**What the AI got wrong and how it was found**
+
+- One unit test failed on its first run because of the test's own value;
+  the test value was changed, not the code.
+- A cancelled code was first refused with the words "too many wrong
+  attempts". Found while writing the API test for reassignment; the wording
+  now fits both cases.
+
+**What the author must review and verify**
+
+- Read `judgeAttempt` and `verifyVisit` together and explain why a sixth
+  guess fails even with the right code, and why two guesses at the same
+  moment cannot both be the fifth.
+- Explain in your own words why the code is stored as a keyed hash.
+- Decide whether D37 and D38 suit the dormitory: nobody sets "in progress"
+  by hand; entry in absence is asked per report and means "no" if left out.
+- The limits (10 minutes, 5 guesses, 3 codes an hour, 3 "no access" a day)
+  come from the brief or are the assistant's proposals; they are constants.
+- The API tests of this module had not been run when this entry was
+  written. Do not rely on them until the build plan records a run.
+- Try all four ways in yourself, with test accounts, before the defence.
