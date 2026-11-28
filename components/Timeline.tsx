@@ -19,7 +19,17 @@ function describe(e: LogEntry): { text: string; detail?: string } {
     case "confirmed":
       return e.actorRole ? { text: "Repair confirmed by the resident; report closed", detail: e.note ?? undefined } : { text: "Closed automatically", detail: e.note ?? undefined };
     case "not-fixed":
-      return { text: "Resident says it is not fixed; work continues", detail: e.note ? `Reason: ${e.note}` : undefined };
+      return { text: "Resident says it is not fixed", detail: e.note ? `Reason: ${e.note}` : undefined };
+    case "visit-verified":
+      return { text: "Visit verified with the resident's code; work started" };
+    case "entered-in-absence":
+      return { text: "Entered in the resident's absence, as the resident allowed; work started" };
+    case "emergency-entry":
+      return { text: "Entered on an emergency authorisation; work started" };
+    case "entry-authorised":
+      return { text: "Emergency entry authorised", detail: e.note ? `Reason: ${e.note}` : undefined };
+    case "no-access":
+      return { text: "No access: the technician could not enter", detail: e.note ?? undefined };
     case "priority":
       return { text: `Priority changed from ${e.from ?? "—"} to ${e.to ?? "—"}`, detail: e.note ? `Reason: ${e.note}` : undefined };
     default:

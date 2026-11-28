@@ -14,6 +14,7 @@ import {
   type Report,
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
+import { EntryAuthorise } from "@/components/EntryAuthorise";
 import {
   Alert, AppShell, Card, Detail, Field, Icon, LoadingScreen, PRIORITIES, PageHeader, PriorityBadge,
   STATUSES, Spinner, StatGrid, StatusBadge, Tabs, Tag, URGENCIES, btn, categoryLabel, cx, inputCls,
@@ -565,6 +566,8 @@ export default function AdminDashboard() {
                   <Detail label="Technician">{selected.assignedTo || "Not assigned"}</Detail>
                   <Detail label="Report ID"><span className="break-all font-mono text-xs text-ink-2">{selected.id}</span></Detail>
                 </dl>
+
+                <EntryAuthorise key={selected.id} report={selected} busy={busyId === selected.id} run={(action) => run(selected.id, action)} />
 
                 <div className="mt-5">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted">Description</p>

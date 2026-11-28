@@ -8,6 +8,7 @@ import {
   changeStatus, errorMessage, formatDate, photoUrl, saveResolutionNote, toDate, type Report,
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
+import { VisitStart } from "@/components/VisitStart";
 import {
   Alert, AppShell, EmptyState, Icon, LoadingScreen, PageHeader, PriorityBadge, STATUSES, STATUS_BAR,
   Spinner, StatGrid, StatusBadge, Tabs, Tag, btn, categoryLabel, cx, inputCls, selectCls, selectInlineCls, statusLabel,
@@ -74,7 +75,7 @@ export default function TechnicianDashboard() {
   const createdDate = (r: Report): Date | null => toDate(r.createdAt);
 
   // Counts over all the technician's assignments, from the server, whatever filter is set.
-  const mine = list.summary.mine ?? { total: 0, open: 0, inProgress: 0, resolved: 0, overdue: 0 };
+  const mine = list.summary.mine ?? { total: 0, open: 0, assigned: 0, inProgress: 0, resolved: 0, overdue: 0 };
   const stats = { assigned: mine.total, inProgress: mine.inProgress, resolved: mine.resolved, overdue: mine.overdue };
 
   if (loading || dataLoading) {
@@ -82,7 +83,7 @@ export default function TechnicianDashboard() {
   }
 
   const displayName = userProfile?.name || user?.email || "Technician";
-  const active = mine.open + mine.inProgress;
+  const active = mine.open + mine.assigned + mine.inProgress;
 
   return (
     <AppShell
@@ -237,6 +238,7 @@ export default function TechnicianDashboard() {
                         </Alert>
                       ) : (
                         <>
+                          <VisitStart report={r} busy={busy} run={(action) => run(r.id, action)} />
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-muted">Update status</p>
                             <p className="mt-2 text-sm text-ink-2">
@@ -246,7 +248,9 @@ export default function TechnicianDashboard() {
                               <p className="mt-2 text-sm text-muted">
                                 {r.status === "closed"
                                   ? "This report is closed. Only an administrator can reopen it."
-                                  : "No further status changes are available to you."}
+                                  : r.status === "assigned"
+                                    ? "Work starts with the resident's visit code (above). After that you can mark the report as resolved."
+                                    : "No further status changes are available to you."}
                               </p>
                             ) : (
                               <div className="mt-2 flex flex-wrap gap-2">
@@ -257,7 +261,7 @@ export default function TechnicianDashboard() {
                                     disabled={busy}
                                     className={btn.secondary}
                                   >
-                                    {r.status === "resolved" && s === "in-progress" ? "Resume work" : `Mark as ${statusLabel(s).toLowerCase()}`}
+                                    {r.status === "resolved" && s === "assigned" ? "Take back for a new visit" : `Mark as ${statusLabel(s).toLowerCase()}`}
                                   </button>
                                 ))}
                               </div>

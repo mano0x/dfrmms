@@ -18,12 +18,13 @@ const created: string[] = [];
 let lamp = "", tap = "", door = "", other = "";
 
 type Listed = { id: string; status: string; priority: string; studentId: string; title: string };
-type Summary = { total: number; open: number; inProgress: number; resolved: number; closed: number; overdue: number; unassignedOpen: number; mine: null | { total: number; open: number; inProgress: number; resolved: number; overdue: number } };
+type Summary = { total: number; open: number; assigned: number; inProgress: number; resolved: number; closed: number; overdue: number; unassignedOpen: number; mine: null | { total: number; open: number; inProgress: number; resolved: number; overdue: number } };
 const list = (cookie: string | undefined, query = "") => call(`/api/reports${query}`, { cookie });
 const items = async (cookie: string, query = "") => (await list(cookie, query)).data.reports as Listed[];
 const summary = async (cookie: string) => (await list(cookie, "?only=summary")).data.summary as Summary;
 const submit = async (cookie: string, title: string, urgency = "normal") => {
-  const res = await call("/api/reports", { method: "POST", cookie, body: { title, category: "electrical", urgency, description: "Something in the room stopped working this morning." } });
+  // Entry in absence is allowed, so that the test technician can start work without a visit code.
+  const res = await call("/api/reports", { method: "POST", cookie, body: { title, category: "electrical", urgency, description: "Something in the room stopped working this morning.", entryAllowed: true } });
   expect(res.status).toBe(201);
   created.push(res.data.report.id);
   return res.data.report.id as string;
@@ -39,9 +40,11 @@ beforeAll(async () => {
   tap = await submit(student1, `${WORD} tap drips`);
   door = await submit(student1, `${WORD} door does not close`);
   other = await submit(student2, `${WORD} radiator is cold`);
-  // One is assigned (which also moves it to "in progress"), one is assigned and then resolved.
+  // One is assigned and started (in progress), one is assigned, started and then resolved.
   expect((await patch(admin, lamp, { action: "assign", technicianId: "test-tech1" })).status).toBe(200);
+  expect((await patch(tech1, lamp, { action: "start", mode: "absence" })).status).toBe(200);
   expect((await patch(admin, tap, { action: "assign", technicianId: "test-tech1" })).status).toBe(200);
+  expect((await patch(tech1, tap, { action: "start", mode: "absence" })).status).toBe(200);
   expect((await patch(tech1, tap, { action: "status", status: "resolved" })).status).toBe(200);
 });
 afterAll(async () => {
@@ -159,14 +162,15 @@ describe("counts for staff", () => {
     expect(counts.total).toBe(await countRows([]));
     expect(counts.open).toBe(await countRows([Query.equal("status", "open")]));
     expect(counts.inProgress).toBe(await countRows([Query.equal("status", "in-progress")]));
-    expect(counts.total).toBe(counts.open + counts.inProgress + counts.resolved + counts.closed);
+    expect(counts.assigned).toBe(await countRows([Query.equal("status", "assigned")]));
+    expect(counts.total).toBe(counts.open + counts.assigned + counts.inProgress + counts.resolved + counts.closed);
     expect(counts.unassignedOpen).toBeGreaterThanOrEqual(2);
     expect(counts.overdue).toBeGreaterThanOrEqual(1);
     expect(counts.mine).toBeNull();
   });
   it("FR-13: a technician also gets the counts of their own assignments", async () => {
-    expect((await summary(tech1)).mine).toEqual({ total: 2, open: 0, inProgress: 1, resolved: 1, overdue: 0 });
-    expect((await summary(tech2)).mine).toEqual({ total: 0, open: 0, inProgress: 0, resolved: 0, overdue: 0 });
+    expect((await summary(tech1)).mine).toEqual({ total: 2, open: 0, assigned: 0, inProgress: 1, resolved: 1, overdue: 0 });
+    expect((await summary(tech2)).mine).toEqual({ total: 0, open: 0, assigned: 0, inProgress: 0, resolved: 0, overdue: 0 });
   });
   it("SEC-17: the list contains no e-mail address", async () => {
     expect(JSON.stringify((await list(admin, "?limit=50")).data)).not.toContain("@");

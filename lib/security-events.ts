@@ -20,6 +20,7 @@ export const SECURITY_EVENT_TYPES = [
   "access-refused", "origin-refused", "rate-limited",
   "identity-viewed",
   "allocation-created", "allocation-changed", "reference-data-changed",
+  "visit-code-void", "room-entered", "emergency-entry-authorised",
   "job-run",
 ] as const;
 export type SecurityEventType = (typeof SECURITY_EVENT_TYPES)[number];
@@ -40,6 +41,9 @@ export const SECURITY_EVENT_LABEL: Record<SecurityEventType, string> = {
   "allocation-created": "Room allocated",
   "allocation-changed": "Room allocation ended or cancelled",
   "reference-data-changed": "Dormitory, room or room type changed",
+  "visit-code-void": "Visit code blocked after wrong attempts",
+  "room-entered": "Room entered without the resident",
+  "emergency-entry-authorised": "Emergency entry authorised",
   "job-run": "Scheduled job run",
 };
 

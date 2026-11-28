@@ -14,7 +14,7 @@
  */
 
 export type ReportChange = {
-  type: "created" | "edited" | "status" | "assignment" | "priority" | "note" | "confirmed" | "not-fixed";
+  type: "created" | "edited" | "status" | "assignment" | "priority" | "note" | "confirmed" | "not-fixed" | "visit-verified" | "entered-in-absence" | "emergency-entry" | "entry-authorised" | "no-access";
   from?: string | null;
   to?: string | null;
 };
@@ -33,18 +33,25 @@ export type Outgoing = { userId: string; message: ReportMessage };
 
 const PAGE = { resident: "/student", technician: "/technician", admin: "/admin" } as const;
 
+/** What the resident is told when their visit code was made void by wrong guesses. The code is not in it. */
+export const codeVoidMessage = (report: Pick<ReportParties, "title" | "studentId">): Outgoing => ({
+  userId: report.studentId,
+  message: { type: "fault-code-void", title: "Your visit code was blocked after 5 wrong attempts", body: `For ${quoted(report.title)}. If a technician is at your door, open the report and ask for a new code.`, link: PAGE.resident },
+});
+
 /** The actor ID used when the system itself changes a report (the daily job). */
 export const SYSTEM_ACTOR_ID = "system";
 
 const quoted = (title: string): string => `"${title.length > 80 ? `${title.slice(0, 77)}...` : title}"`;
 const place = (report: ReportParties): string => `${report.dormitory}, room ${report.roomNumber}`;
 
-const STATUS_NAME: Record<string, string> = { open: "open", "in-progress": "in progress", resolved: "resolved", closed: "closed" };
+const STATUS_NAME: Record<string, string> = { open: "open", assigned: "assigned", "in-progress": "in progress", resolved: "resolved", closed: "closed" };
 const statusName = (status: string | null | undefined): string => STATUS_NAME[status ?? ""] ?? String(status ?? "unknown");
 
 /** What the resident is told when the status of their report changes. */
 function statusTitleForResident(from: string | null | undefined, to: string | null | undefined): string {
   if (to === "in-progress") return from === "resolved" ? "Work on your report has started again" : "Work on your report has started";
+  if (to === "assigned") return from === "resolved" ? "The technician will visit again for your report" : "Your report is waiting for the technician's visit";
   if (to === "resolved") return "Your report was marked as resolved";
   if (to === "closed") return "Your report was closed";
   if (to === "open") return from === "closed" ? "Your report was reopened" : "Your report is waiting for a technician again";
@@ -124,6 +131,23 @@ export function notificationsForChanges(
       if (technician) tell(technician, { ...message, link: PAGE.technician });
       // Without a technician somebody must still hear about it.
       else for (const adminId of administratorIds) tell(adminId, { ...message, link: PAGE.admin });
+    }
+    // The visit. No message ever contains a visit code, a reason or a note: those are read on the report.
+    if (change.type === "visit-verified") {
+      tell(resident, { type: "fault-visit", title: "The technician's visit was verified", body: `Work on ${quoted(after.title)} has started.`, link: PAGE.resident });
+    }
+    if (change.type === "entered-in-absence") {
+      tell(resident, { type: "fault-entry", title: "A technician entered your room in your absence", body: `For ${quoted(after.title)}. You allowed this when you reported the fault.`, link: PAGE.resident });
+    }
+    if (change.type === "emergency-entry") {
+      tell(resident, { type: "fault-entry", title: "A technician entered your room on an emergency authorisation", body: `For ${quoted(after.title)}. Open the report to read the reason.`, link: PAGE.resident });
+    }
+    if (change.type === "entry-authorised") {
+      tell(resident, { type: "fault-entry", title: "An administrator authorised emergency entry to your room", body: `For ${quoted(after.title)}. Open the report to read the reason.`, link: PAGE.resident });
+      tell(technician, { type: "fault-entry", title: "Emergency entry was authorised for a report assigned to you", body: `${quoted(after.title)} in ${place(after)}. Open the report to read the reason.`, link: PAGE.technician });
+    }
+    if (change.type === "no-access") {
+      tell(resident, { type: "fault-no-access", title: "The technician could not enter your room", body: `For ${quoted(after.title)}. When you are in, open the report and ask for a visit code.`, link: PAGE.resident });
     }
     // "edited": a resident can edit only while nobody is assigned and nothing was triaged, so there is nobody to tell.
   }

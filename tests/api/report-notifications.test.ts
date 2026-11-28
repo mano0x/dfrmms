@@ -31,7 +31,7 @@ afterAll(async () => {
 
 describe("a fault report from submission to closing", () => {
   it("FR-26: a new report is announced to administrators, not to the resident who sent it", async () => {
-    const res = await call("/api/reports", { method: "POST", cookie: student1, body: { title: TITLE, category: "electrical", urgency: "emergency", description: "The ceiling light flickers and then goes out." } });
+    const res = await call("/api/reports", { method: "POST", cookie: student1, body: { title: TITLE, category: "electrical", urgency: "emergency", description: "The ceiling light flickers and then goes out.", entryAllowed: true } });
     expect(res.status).toBe(201);
     id = res.data.report.id;
     const [note] = await about(admin);
@@ -61,6 +61,11 @@ describe("a fault report from submission to closing", () => {
     const [note] = await about(student1);
     expect(note).toMatchObject({ type: "fault-note", title: "A note was added to your report", body: `Open "${TITLE}" to read it.` });
     expect((await types(tech1))[0]).toBe("fault-priority"); // nothing new for the technician who wrote it
+  });
+  it("FR-V: entering in the resident's absence tells the resident", async () => {
+    expect((await patch(tech1, { action: "start", mode: "absence" })).status).toBe(200);
+    expect((await about(student1))[0]).toMatchObject({ type: "fault-entry", title: "A technician entered your room in your absence" });
+    expect((await types(tech1))[0]).toBe("fault-priority"); // nothing new for the technician who entered
   });
   it("FR-26: resolving tells the resident; closing by an administrator tells the resident and the technician", async () => {
     expect((await patch(tech1, { action: "status", status: "resolved" })).status).toBe(200);
@@ -95,7 +100,7 @@ describe("who is not told, and what a message never contains", () => {
     }
   });
   it("FR-26: the resident received every step in order, newest first", async () => {
-    expect(await types(student1)).toEqual(["fault-status", "fault-status", "fault-note", "fault-priority", "fault-assigned"]);
+    expect(await types(student1)).toEqual(["fault-status", "fault-status", "fault-entry", "fault-note", "fault-priority", "fault-assigned"]);
     expect(await types(tech1)).toEqual(["fault-status", "fault-priority", "fault-assigned"]);
   });
   it("FR-26: a technician reads and marks their notifications like everyone else", async () => {

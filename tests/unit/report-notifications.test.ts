@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { notificationsForChanges, type ReportParties } from "../../lib/report-notifications";
+import { codeVoidMessage, notificationsForChanges, type ReportParties } from "../../lib/report-notifications";
 
 const report = (over: Partial<ReportParties> = {}): ReportParties => ({
   title: "Ceiling light flickers", studentId: "s1", dormitory: "Dormitory A", roomNumber: "204", assignedToId: null, ...over,
@@ -102,5 +102,45 @@ describe("who is told about the resident's answer", () => {
     const out = notificationsForChanges([{ type: "not-fixed", from: "resolved", to: "in-progress" }], report(), report(), "s1", ["a1", "a2"]);
     expect(who(out)).toEqual(["a1", "a2"]);
     expect(to(out, "a1")?.link).toBe("/admin");
+  });
+});
+
+describe("who is told about a visit", () => {
+  const SECRETS = ["123456", "Water is running", "nobody answered the door"];
+  it("FR-V: a verified visit tells the resident that work has started", () => {
+    const out = notificationsForChanges([{ type: "visit-verified", from: "assigned", to: "in-progress" }], assigned, assigned, "t1");
+    expect(who(out)).toEqual(["s1"]);
+    expect(to(out, "s1")).toMatchObject({ type: "fault-visit", title: "The technician's visit was verified", link: "/student" });
+  });
+  it("FR-V: entry in absence and emergency entry tell the resident, not the technician who entered", () => {
+    for (const type of ["entered-in-absence", "emergency-entry"] as const) {
+      const out = notificationsForChanges([{ type, from: "assigned", to: "in-progress" }], assigned, assigned, "t1");
+      expect(who(out), type).toEqual(["s1"]);
+      expect(to(out, "s1")?.type).toBe("fault-entry");
+    }
+  });
+  it("FR-V: an emergency authorisation tells the resident and the technician, without the reason", () => {
+    const out = notificationsForChanges([{ type: "entry-authorised" }], assigned, assigned, "a1");
+    expect(who(out)).toEqual(["s1", "t1"]);
+    expect(to(out, "s1")?.title).toBe("An administrator authorised emergency entry to your room");
+    expect(to(out, "t1")?.link).toBe("/technician");
+    for (const secret of SECRETS) expect(JSON.stringify(out)).not.toContain(secret);
+  });
+  it("FR-V: \"no access\" tells the resident", () => {
+    const out = notificationsForChanges([{ type: "no-access" }], assigned, assigned, "t1");
+    expect(who(out)).toEqual(["s1"]);
+    expect(to(out, "s1")).toMatchObject({ type: "fault-no-access", title: "The technician could not enter your room" });
+  });
+  it("FR-V: a blocked code tells the resident, and the message holds no code", () => {
+    const out = codeVoidMessage(assigned);
+    expect(out.userId).toBe("s1");
+    expect(out.message).toMatchObject({ type: "fault-code-void", link: "/student" });
+    expect(JSON.stringify(out)).not.toMatch(/\d{6}/);
+  });
+  it("FR-26: a report sent back to its technician is described to the resident as waiting for the visit", () => {
+    const again = notificationsForChanges([{ type: "status", from: "resolved", to: "assigned" }], assigned, assigned, "t1");
+    expect(to(again, "s1")).toMatchObject({ title: "The technician will visit again for your report", body: '"Ceiling light flickers" is now assigned.' });
+    const back = notificationsForChanges([{ type: "status", from: "in-progress", to: "assigned" }], assigned, assigned, "a1");
+    expect(to(back, "s1")?.title).toBe("Your report is waiting for the technician's visit");
   });
 });

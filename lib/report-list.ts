@@ -37,7 +37,7 @@ export function filterProblem(actor: Actor, filter: ReportFilter): string | null
 /**
  * For each priority, the moment before which a report must have been
  * created to be past its target time now. A report is overdue when it is
- * open or in progress and was created before the moment of its priority.
+ * open, assigned or in progress and was created before the moment of its priority.
  */
 export function overdueCutoffs(now: Date = new Date()): Record<Priority, string> {
   const cutoff = (priority: Priority) => new Date(now.getTime() - TARGET_HOURS[priority] * 60 * 60 * 1000).toISOString();
@@ -48,6 +48,8 @@ export function overdueCutoffs(now: Date = new Date()): Record<Priority, string>
 export type ReportSummary = {
   total: number;
   open: number;
+  /** A technician is named, work has not started. */
+  assigned: number;
   inProgress: number;
   resolved: number;
   closed: number;
@@ -55,7 +57,7 @@ export type ReportSummary = {
   /** Open reports with no technician. Staff only; 0 for a resident. */
   unassignedOpen: number;
   /** The same counts over the reports assigned to the caller. Technicians only. */
-  mine: { total: number; open: number; inProgress: number; resolved: number; overdue: number } | null;
+  mine: { total: number; open: number; assigned: number; inProgress: number; resolved: number; overdue: number } | null;
 };
 
-export const EMPTY_SUMMARY: ReportSummary = { total: 0, open: 0, inProgress: 0, resolved: 0, closed: 0, overdue: 0, unassignedOpen: 0, mine: null };
+export const EMPTY_SUMMARY: ReportSummary = { total: 0, open: 0, assigned: 0, inProgress: 0, resolved: 0, closed: 0, overdue: 0, unassignedOpen: 0, mine: null };

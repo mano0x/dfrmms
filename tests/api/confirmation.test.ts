@@ -27,14 +27,15 @@ const row = (reportId: string) => tablesDB.getRow({ databaseId: DB, tableId: "fa
 const history = async (cookie: string, reportId: string) => (await call(`/api/reports/${reportId}/history`, { cookie })).data.history as Entry[];
 const about = async (cookie: string) => ((await call("/api/notifications", { cookie })).data.notifications as Note[]).filter((n) => n.body?.includes(WORD));
 const submit = async (title: string) => {
-  const res = await call("/api/reports", { method: "POST", cookie: student1, body: { title: `${WORD} ${title}`, category: "electrical", urgency: "normal", description: "Something in the room stopped working this morning." } });
+  const res = await call("/api/reports", { method: "POST", cookie: student1, body: { title: `${WORD} ${title}`, category: "electrical", urgency: "normal", description: "Something in the room stopped working this morning.", entryAllowed: true } });
   expect(res.status).toBe(201);
   created.push(res.data.report.id);
   return res.data.report.id as string;
 };
-/** Assign the test technician (which starts the work) and mark the report as resolved. */
+/** Assign the test technician, start the work (entry in absence, which these reports allow) and mark the report as resolved. */
 const resolve = async (reportId: string, assign = true) => {
   if (assign) expect((await patch(admin, reportId, { action: "assign", technicianId: "test-tech1" })).status).toBe(200);
+  expect((await patch(tech1, reportId, { action: "start", mode: "absence" })).status).toBe(200);
   expect((await patch(tech1, reportId, { action: "status", status: "resolved" })).status).toBe(200);
 };
 const runDailyJob = () => fetch(`${BASE}/api/jobs/daily`, { headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` } });
@@ -92,15 +93,16 @@ describe("who may answer", () => {
 });
 
 describe("saying that it is not fixed", () => {
-  it("FR-11: the report goes back to work with the reason; fields the caller must not set are ignored", async () => {
+  // Changed on purpose in B3 (decision D35): the report goes back to its technician as "assigned", because a new visit must be verified.
+  it("FR-11: the report goes back to its technician with the reason; fields the caller must not set are ignored", async () => {
     const res = await patch(student1, id, { action: "not-fixed", reason: REASON, status: "closed", rating: 5, notFixedCount: 0, assignedToId: "test-tech2" });
     expect(res.status).toBe(200);
-    expect(res.data.report).toMatchObject({ status: "in-progress", notFixedCount: 1, rating: null, assignedToId: "test-tech1" });
-    expect(await row(id)).toMatchObject({ status: "in-progress", notFixedCount: 1, assignedToId: "test-tech1" });
+    expect(res.data.report).toMatchObject({ status: "assigned", notFixedCount: 1, rating: null, assignedToId: "test-tech1" });
+    expect(await row(id)).toMatchObject({ status: "assigned", notFixedCount: 1, assignedToId: "test-tech1" });
   });
   it("FR-25: the history records it with the reason, and the technician can read it there", async () => {
     const last = (await history(tech1, id)).at(-1)!;
-    expect(last).toMatchObject({ type: "not-fixed", from: "resolved", to: "in-progress", note: REASON, actorRole: "student" });
+    expect(last).toMatchObject({ type: "not-fixed", from: "resolved", to: "assigned", note: REASON, actorRole: "student" });
   });
   it("FR-26: the technician is told, without the reason in the message", async () => {
     const [note] = await about(tech1);

@@ -15,8 +15,9 @@
  * matters.
  *
  * This is the only place in the application that deletes rows, and it only
- * deletes rows that carry no information: locks that were left behind. What
- * it did is written to the security event log.
+ * deletes rows that carry no information: locks that were left behind, and
+ * visit codes that expired more than a day ago (a keyed hash nobody can use
+ * any more). What it did is written to the security event log.
  */
 import { timingSafeEqual } from "node:crypto";
 import { Query } from "node-appwrite";
@@ -38,7 +39,10 @@ export const LEFTOVER_LOCK_AGE_MS = 10 * 60 * 1000;
 
 export const leftoverBefore = (now: Date = new Date()): string => new Date(now.getTime() - LEFTOVER_LOCK_AGE_MS).toISOString();
 
-export type DailyResult = { limitLocksRemoved: number; allocationLocksRemoved: number; reportsClosed: number };
+/** A visit code is valid for ten minutes; its row is kept for a day so that the hourly limit and any question about it can still be answered. */
+export const VISIT_CODE_KEEP_MS = 24 * 60 * 60 * 1000;
+
+export type DailyResult = { limitLocksRemoved: number; allocationLocksRemoved: number; reportsClosed: number; visitCodesRemoved: number };
 
 async function removeOlderThan(tableId: string, column: "createdAt" | "expiresAt", before: string): Promise<number> {
   const { tablesDB } = adminServices();
@@ -65,10 +69,11 @@ export async function runDailyJob(now: Date = new Date()): Promise<DailyResult> 
     allocationLocksRemoved: await removeOlderThan(TABLES.allocationLocks, "createdAt", before),
     // Resolved reports nobody answered within seven days: the closing every reader already sees is written down.
     reportsClosed: await closeUnanswered(now),
+    visitCodesRemoved: await removeOlderThan(TABLES.visitCodes, "expiresAt", new Date(now.getTime() - VISIT_CODE_KEEP_MS).toISOString()),
   };
   await recordEvent({
     type: "job-run", outcome: "ok", targetType: "daily-job",
-    detail: `Leftover locks removed: ${result.limitLocksRemoved} for limits, ${result.allocationLocksRemoved} for room allocation. Unanswered reports closed: ${result.reportsClosed}.`,
+    detail: `Leftover locks removed: ${result.limitLocksRemoved} for limits, ${result.allocationLocksRemoved} for room allocation. Unanswered reports closed: ${result.reportsClosed}. Expired visit codes removed: ${result.visitCodesRemoved}.`,
   });
   return result;
 }

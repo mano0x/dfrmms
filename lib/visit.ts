@@ -129,12 +129,12 @@ export function verifyProblem(actor: Actor, report: VisitReport): string | null 
 }
 
 export const INVALID_CODE = "The code is not valid. Ask the resident for a new code.";
-export const TOO_MANY_ATTEMPTS = "Too many wrong attempts. The resident must ask for a new code.";
+export const CODE_VOID = "This code was blocked or cancelled. The resident must ask for a new code.";
 
 /** Why the stored code cannot be tried at all, before any comparison. The same words for "none", "expired" and "used": the technician learns nothing about the code. */
 export function codeProblem(state: CodeState): string | null {
   if (state === "active") return null;
-  return state === "void" ? TOO_MANY_ATTEMPTS : INVALID_CODE;
+  return state === "void" ? CODE_VOID : INVALID_CODE;
 }
 
 export type AttemptResult = "verified" | "wrong" | "wrong-and-void" | "refused";

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Actor } from "../../lib/access";
 import {
-  CODE_TTL_MINUTES, INVALID_CODE, MAX_CODES_PER_HOUR, MAX_WRONG_ATTEMPTS, TOO_MANY_ATTEMPTS,
+  CODE_TTL_MINUTES, INVALID_CODE, MAX_CODES_PER_HOUR, MAX_WRONG_ATTEMPTS, CODE_VOID,
   authoriseProblem, codeExpiry, codeInputSchema, codeProblem, codeState, codeView, entryReasonSchema, formatCode, issueProblem,
   issuesAfter, judgeAttempt, needsCode, noAccessProblem, openDoors, recentIssues, startInputSchema, startProblem, verifyProblem,
   type StoredCode, type VisitReport,
@@ -142,7 +142,7 @@ describe("typing in a code", () => {
   it("FR-V: a missing, expired or used code is refused in the same words, so nothing is learnt about it", () => {
     expect(codeProblem("active")).toBeNull();
     for (const state of ["none", "expired", "used"] as const) expect(codeProblem(state)).toBe(INVALID_CODE);
-    expect(codeProblem("void")).toBe(TOO_MANY_ATTEMPTS);
+    expect(codeProblem("void")).toBe(CODE_VOID);
   });
   it("FR-V: the right code is accepted on any of the first five guesses", () => {
     for (let attempt = 1; attempt <= MAX_WRONG_ATTEMPTS; attempt++) expect(judgeAttempt(attempt, true)).toBe("verified");

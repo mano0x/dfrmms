@@ -134,7 +134,7 @@ describe("the life of a fault report", () => {
     expect((await patch(admin, id, { action: "assign", technicianId: "does-not-exist" })).status).toBe(400);
     const r = await patch(admin, id, { action: "assign", technicianId: "test-tech1", assignedTo: "Injected Name" });
     expect(r.status).toBe(200);
-    expect(r.data.report).toMatchObject({ assignedToId: "test-tech1", assignedTo: "Test Technician One", status: "in-progress" });
+    expect(r.data.report).toMatchObject({ assignedToId: "test-tech1", assignedTo: "Test Technician One", status: "assigned" }); // since B3: assigned, not in progress
   });
 
   it("lets only the assigned technician work on it, following the technician workflow", async () => {
@@ -145,15 +145,23 @@ describe("the life of a fault report", () => {
     expect((await patch(tech1, id, { action: "status", status: "archived" })).status).toBe(400);
     expect((await patch(tech1, id, { action: "note", note: "  " })).status).toBe(400);
 
+    // Since B3 nobody declares that work has started: it starts through a visit (here an authorised emergency entry).
+    expect((await patch(tech1, id, { action: "status", status: "resolved" })).status).toBe(403);
+    expect((await patch(tech1, id, { action: "status", status: "in-progress" })).status).toBe(403);
+    expect((await patch(admin, id, { action: "status", status: "in-progress" })).status).toBe(403);
+    expect((await patch(admin, id, { action: "authorise-entry", reason: "Test: the resident is away and the lamp sparks." })).status).toBe(200);
+    expect((await patch(tech1, id, { action: "start", mode: "emergency" })).data.report.status).toBe("in-progress");
+
     const note = await patch(tech1, id, { action: "note", note: "Replaced the lamp holder." });
     expect(note.data.report.resolutionNote).toBe("Replaced the lamp holder.");
     expect((await patch(tech1, id, { action: "status", status: "resolved" })).data.report.status).toBe("resolved");
-    expect((await patch(tech1, id, { action: "status", status: "in-progress" })).data.report.status).toBe("in-progress");
-    expect((await patch(tech1, id, { action: "status", status: "resolved" })).data.report.status).toBe("resolved");
+    // Taking a resolved report back needs a new visit: it is assigned again, not in progress.
+    expect((await patch(tech1, id, { action: "status", status: "in-progress" })).status).toBe(403);
+    expect((await patch(tech1, id, { action: "status", status: "assigned" })).data.report.status).toBe("assigned");
   });
 
   it("lets only an administrator close and reopen, within the workflow", async () => {
-    expect((await patch(admin, id, { action: "status", status: "open" })).status).toBe(403); // resolved -> open is not a step
+    expect((await patch(admin, id, { action: "status", status: "open" })).status).toBe(403); // with a technician a report waits as "assigned", not "open"
     expect((await patch(admin, id, { action: "status", status: "closed" })).data.report.status).toBe("closed");
     expect((await patch(admin, id, { action: "status", status: "resolved" })).status).toBe(403);
     expect((await patch(admin, id, { action: "assign", technicianId: "test-tech2" })).status).toBe(403);
@@ -165,12 +173,13 @@ describe("the life of a fault report", () => {
     const r = await call(`/api/reports/${id}/history`, { cookie: student1 });
     expect(r.status).toBe(200);
     const entries = r.data.history as { type: string; from: string | null; to: string | null; note: string | null; actorName: string; actorRole: string }[];
-    expect(entries.map((e) => e.type)).toEqual(["created", "edited", "priority", "assignment", "status", "note", "status", "status", "status", "status"]);
+    expect(entries.map((e) => e.type)).toEqual(["created", "edited", "priority", "assignment", "status", "entry-authorised", "emergency-entry", "note", "status", "status", "status"]);
     expect(entries[0]).toMatchObject({ actorName: "Test Student One", actorRole: "student", to: "open" });
     expect(entries[2]).toMatchObject({ from: "critical", to: "medium", note: "Single lamp, no safety risk", actorRole: "admin" });
     expect(entries[3]).toMatchObject({ to: "Test Technician One", actorRole: "admin" });
-    expect(entries[4]).toMatchObject({ from: "open", to: "in-progress" });
-    expect(entries.at(-1)).toMatchObject({ from: "resolved", to: "closed", actorRole: "admin" });
+    expect(entries[4]).toMatchObject({ from: "open", to: "assigned" });
+    expect(entries[6]).toMatchObject({ from: "assigned", to: "in-progress", actorRole: "technician" });
+    expect(entries.at(-1)).toMatchObject({ from: "assigned", to: "closed", actorRole: "admin" });
     expect(Object.keys(entries[0])).not.toContain("actorId"); // internal IDs are not exposed
 
     expect((await call(`/api/reports/${id}/history`, { cookie: tech2 })).status).toBe(200);

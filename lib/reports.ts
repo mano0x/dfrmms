@@ -7,11 +7,12 @@ import { ApiError, api } from "./api";
 import { prepareImage } from "./image-client";
 import type { HistoryDTO, ReportDTO, ReportPage } from "./server/reports"; // types only - no server code is bundled
 import type { ReportFilter, ReportSummary } from "./report-list";
+import type { CodeView, EntryMode } from "./visit";
 
 export type Report = ReportDTO;
 export type LogEntry = HistoryDTO;
 
-export type ReportInput = { title: string; category: string; urgency: string; description: string; photoFileId?: string | null };
+export type ReportInput = { title: string; category: string; urgency: string; description: string; entryAllowed?: boolean; photoFileId?: string | null };
 
 export type ReportListFilter = ReportFilter;
 export type ReportCounts = ReportSummary;
@@ -42,6 +43,23 @@ export const saveResolutionNote = (reportId: string, note: string) => patch(repo
 /** The resident's answer after a repair. */
 export const confirmRepair = (reportId: string, rating: number | null) => patch(reportId, { action: "confirm", rating });
 export const reportNotFixed = (reportId: string, reason: string) => patch(reportId, { action: "not-fixed", reason });
+
+/** One report, as the server shows it to this user. */
+export const fetchReport = async (reportId: string) => (await api<{ report: Report }>(`/api/reports/${encodeURIComponent(reportId)}`)).report;
+
+/* ---------- the technician's visit ---------- */
+
+export type VisitCodeView = CodeView;
+const visitCodeUrl = (reportId: string) => `/api/reports/${encodeURIComponent(reportId)}/visit-code`;
+/** The state of the visit code of the resident's own report; never the code. */
+export const fetchVisitCode = async (reportId: string) => (await api<{ visitCode: VisitCodeView }>(visitCodeUrl(reportId))).visitCode;
+/** Make a new visit code. This answer is the only place the code appears. */
+export const requestVisitCode = async (reportId: string) =>
+  (await api<{ visitCode: VisitCodeView & { code: string } }>(visitCodeUrl(reportId), { method: "POST", body: {} })).visitCode;
+export const verifyVisit = (reportId: string, code: string) => patch(reportId, { action: "verify-visit", code });
+export const startWithoutCode = (reportId: string, mode: EntryMode) => patch(reportId, { action: "start", mode });
+export const recordNoAccess = (reportId: string, note: string) => patch(reportId, { action: "no-access", ...(note.trim() ? { note } : {}) });
+export const authoriseEntry = (reportId: string, reason: string) => patch(reportId, { action: "authorise-entry", reason });
 
 export const fetchTimeline = async (reportId: string) =>
   (await api<{ history: LogEntry[] }>(`/api/reports/${encodeURIComponent(reportId)}/history`)).history;

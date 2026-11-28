@@ -42,6 +42,7 @@ export const URGENCIES = [
 
 export const STATUSES = [
   { value: "open", label: "Open" },
+  { value: "assigned", label: "Assigned" },
   { value: "in-progress", label: "In progress" },
   { value: "resolved", label: "Resolved" },
   { value: "closed", label: "Closed" },
@@ -176,6 +177,7 @@ export const Icon = {
 // Monochrome: statuses differ by marker shape/shade, not colour.
 const STATUS_TONE: Record<string, string> = {
   open: "bg-surface text-ink ring-ink/80",
+  assigned: "bg-surface text-ink ring-ink/50",
   "in-progress": "bg-surface text-ink ring-line-strong",
   resolved: "bg-surface-2 text-ink-2 ring-line",
   closed: "bg-transparent text-muted ring-line",
@@ -184,6 +186,7 @@ function StatusMarker({ status }: { status: string }) {
   if (status === "resolved") return <Icon.Check width={12} height={12} strokeWidth={2.4} />;
   const cls: Record<string, string> = {
     open: "bg-ink",
+    assigned: "border-2 border-ink",
     "in-progress": "bg-ink/45",
     closed: "border border-muted",
   };
@@ -191,6 +194,7 @@ function StatusMarker({ status }: { status: string }) {
 }
 export const STATUS_BAR: Record<string, string> = {
   open: "before:bg-ink",
+  assigned: "before:bg-ink/70",
   "in-progress": "before:bg-ink/45",
   resolved: "before:bg-ink/15",
   closed: "before:bg-transparent",

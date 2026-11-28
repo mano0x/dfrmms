@@ -11,6 +11,7 @@ import {
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
 import { RepairAnswer } from "@/components/RepairAnswer";
+import { EntryChoice, VisitCode } from "@/components/VisitCode";
 import {
   Alert, AppShell, CATEGORIES, Card, Detail, EmptyState, Field, FilePicker, Icon,
   LoadingScreen, PageHeader, PriorityBadge, STATUSES, STATUS_BAR, Spinner, StatGrid,
@@ -73,6 +74,7 @@ export default function StudentDashboard() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("electrical");
   const [urgency, setUrgency] = useState("normal");
+  const [entryAllowed, setEntryAllowed] = useState<boolean | null>(null);
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [filterStatus, setFilterStatus] = useState("all");
@@ -83,6 +85,7 @@ export default function StudentDashboard() {
   const [editTitle, setEditTitle] = useState("");
   const [editCategory, setEditCategory] = useState("electrical");
   const [editUrgency, setEditUrgency] = useState("normal");
+  const [editEntryAllowed, setEditEntryAllowed] = useState<boolean | null>(null);
   const [editDescription, setEditDescription] = useState("");
   const [editPhoto, setEditPhoto] = useState<File | null>(null);
 
@@ -100,7 +103,8 @@ export default function StudentDashboard() {
   const fetchError = list.error;
 
   const handleSubmit = async () => {
-    const parsed = reportInputSchema.safeParse({ title, category, urgency, description });
+    if (entryAllowed === null) { setSuccessMsg("❌ Say whether a technician may enter your room in your absence."); return; }
+    const parsed = reportInputSchema.safeParse({ title, category, urgency, description, entryAllowed });
     if (!parsed.success) { setSuccessMsg(`❌ ${firstError(parsed)}`); return; }
     const photoError = validatePhoto(photo);
     if (photoError) { setSuccessMsg(`❌ ${photoError}`); return; }
@@ -114,7 +118,7 @@ export default function StudentDashboard() {
 
       setSuccessMsg("✓ Report submitted successfully!");
       setTitle(""); setCategory("electrical"); setUrgency("normal");
-      setDescription(""); setPhoto(null);
+      setDescription(""); setPhoto(null); setEntryAllowed(null);
       list.reload();
       setTimeout(() => setActiveTab("history"), 1500);
     } catch (err) {
@@ -135,6 +139,7 @@ export default function StudentDashboard() {
     setEditTitle(report.title);
     setEditCategory(report.category);
     setEditUrgency(report.urgency || "normal");
+    setEditEntryAllowed(report.entryAllowed);
     setEditDescription(report.description);
     setEditPhoto(null);
   };
@@ -145,7 +150,7 @@ export default function StudentDashboard() {
       return;
     }
     const parsed = reportInputSchema.safeParse({
-      title: editTitle, category: editCategory, urgency: editUrgency, description: editDescription,
+      title: editTitle, category: editCategory, urgency: editUrgency, description: editDescription, entryAllowed: editEntryAllowed === true,
     });
     if (!parsed.success) { setEditError(firstError(parsed)); return; }
     const photoError = validatePhoto(editPhoto);
@@ -175,8 +180,8 @@ export default function StudentDashboard() {
   const filtered = reports;
 
   // Counts over all of the resident's reports, from the server, whatever filter is set.
-  const stats = { total: list.summary.total, open: list.summary.open, inProgress: list.summary.inProgress, resolved: list.summary.resolved };
-  const countByStatus: Record<string, number> = { all: list.summary.total, open: list.summary.open, "in-progress": list.summary.inProgress, resolved: list.summary.resolved, closed: list.summary.closed };
+  const stats = { total: list.summary.total, open: list.summary.open + list.summary.assigned, inProgress: list.summary.inProgress, resolved: list.summary.resolved };
+  const countByStatus: Record<string, number> = { all: list.summary.total, open: list.summary.open, assigned: list.summary.assigned, "in-progress": list.summary.inProgress, resolved: list.summary.resolved, closed: list.summary.closed };
 
   // Close the details dialog with Escape
   useEffect(() => {
@@ -230,7 +235,7 @@ export default function StudentDashboard() {
       <StatGrid
         items={[
           { label: "My reports", value: stats.total, tone: "solid", icon: <Icon.Clipboard width={16} height={16} /> },
-          { label: "Open", value: stats.open, tone: "plain", icon: <Icon.Alert width={16} height={16} /> },
+          { label: "Not started", value: stats.open, tone: "plain", icon: <Icon.Alert width={16} height={16} /> },
           { label: "In progress", value: stats.inProgress, tone: "plain", icon: <Icon.Clock width={16} height={16} /> },
           { label: "Resolved", value: stats.resolved, tone: "plain", icon: <Icon.Check width={16} height={16} /> },
         ]}
@@ -282,6 +287,8 @@ export default function StudentDashboard() {
               <Field label="Maintenance classification">
                 <UrgencyPicker value={urgency} onChange={setUrgency} name="urgency" />
               </Field>
+
+              <EntryChoice name="entry-allowed" value={entryAllowed} onChange={setEntryAllowed} />
 
               <Field label="Description" required htmlFor="description">
                 <textarea
@@ -477,6 +484,7 @@ export default function StudentDashboard() {
                   <Field label="Maintenance classification">
                     <UrgencyPicker value={editUrgency} onChange={setEditUrgency} name="edit-urgency" />
                   </Field>
+                  <EntryChoice name="edit-entry-allowed" value={editEntryAllowed} onChange={setEditEntryAllowed} />
                   <div className="flex items-center gap-2 text-sm text-muted">
                     New priority: <PriorityBadge priority={calcPriority(editUrgency)} />
                   </div>
@@ -550,6 +558,14 @@ export default function StudentDashboard() {
                       {selectedReport.resolutionNote || "No technician notes have been added yet."}
                     </p>
                   </div>
+
+                  <VisitCode
+                    report={selectedReport}
+                    onChanged={(updated) => {
+                      list.replace(updated);
+                      setSelectedReport(updated);
+                    }}
+                  />
 
                   <RepairAnswer
                     report={selectedReport}

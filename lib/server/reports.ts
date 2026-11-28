@@ -12,7 +12,7 @@ import {
   type Actor,
 } from "../access";
 import {
-  firstError, priorityForClassification, priorityOverrideSchema, reportInputSchema, resolutionNoteSchema,
+  firstError, priorityForClassification, priorityOverrideSchema, reportInputSchema, resolutionNoteSchema, restingStatus, statusAfterAssignment,
   STATUS_VALUES, type Role,
 } from "../maintenance";
 import { photoBelongsTo } from "../image-rules";
@@ -58,6 +58,14 @@ export type ReportDTO = {
   notFixedCount: number;
   /** True when the report is shown as closed because nobody answered within seven days, before the daily job has written that down. */
   autoClosed: boolean;
+  /** The resident's choice when reporting: may a technician enter the room in their absence? */
+  entryAllowed: boolean;
+  /** Set while an administrator's emergency authorisation holds. */
+  entryAuthorisedAt: string | null;
+  /** When work last started, through a verified visit. */
+  workStartedAt: string | null;
+  /** How the technician got in that time: "code", "absence", "emergency" or "shared". */
+  entryMode: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -74,7 +82,10 @@ export type HistoryDTO = {
   timestamp: string;
 };
 
-type LogInput = { type: "created" | "edited" | "status" | "assignment" | "priority" | "note" | "confirmed" | "not-fixed"; from?: string | null; to?: string | null; note?: string };
+export type LogInput = {
+  type: "created" | "edited" | "status" | "assignment" | "priority" | "note" | "confirmed" | "not-fixed" | "visit-verified" | "entered-in-absence" | "emergency-entry" | "entry-authorised" | "no-access";
+  from?: string | null; to?: string | null; note?: string;
+};
 /** Who made a change: a signed-in person, or the system itself (the daily job), which has no role. */
 type Author = { id: string; name: string; role: Role | null };
 const SYSTEM: Author = { id: SYSTEM_ACTOR_ID, name: "System", role: null };
@@ -104,6 +115,10 @@ const toReport = (row: any): ReportDTO => ({
   rating: row.rating ?? null,
   notFixedCount: Number(row.notFixedCount ?? 0),
   autoClosed: autoCloseDue({ status: row.status, resolvedAt: row.resolvedAt ?? null }),
+  entryAllowed: row.entryAllowed === true,
+  entryAuthorisedAt: row.entryAuthorisedAt ?? null,
+  workStartedAt: row.workStartedAt ?? null,
+  entryMode: row.entryMode ?? null,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 });
@@ -123,6 +138,10 @@ const toHistory = (row: any): HistoryDTO => ({
 
 const reportTable = { databaseId: DATABASE_ID, tableId: TABLES.reports };
 const historyTable = { databaseId: DATABASE_ID, tableId: TABLES.history };
+const codeTable = { databaseId: DATABASE_ID, tableId: TABLES.visitCodes };
+
+/** Something more to write in the same transaction as a change to a report. */
+type Alongside = (transactionId: string, at: string) => Promise<void>;
 
 function logRow(transactionId: string, report: { id: string; studentId: string }, actor: Author, entry: LogInput, at: string) {
   return adminServices().tablesDB.createRow({
@@ -146,7 +165,7 @@ function logRow(transactionId: string, report: { id: string; studentId: string }
 }
 
 /** Update a report and record what happened, atomically. Returns the updated report. */
-async function change(report: ReportDTO, actor: Author, changes: Record<string, unknown>, entries: LogInput[], administrators: readonly string[] = []): Promise<ReportDTO> {
+export async function change(report: ReportDTO, actor: Author, changes: Record<string, unknown>, entries: LogInput[], administrators: readonly string[] = [], alongside?: Alongside): Promise<ReportDTO> {
   const now = new Date().toISOString();
   // The seven days for the resident's answer start whenever the report is marked as resolved.
   const data = changes.status === "resolved" ? { ...changes, resolvedAt: now } : changes;
@@ -157,6 +176,7 @@ async function change(report: ReportDTO, actor: Author, changes: Record<string, 
     await adminServices().tablesDB.updateRow({ ...reportTable, rowId: report.id, transactionId, data: { ...data, updatedAt: now } });
     for (const entry of entries) await logRow(transactionId, report, actor, entry, now);
     for (const m of messages) await notify(transactionId, m.userId, m.message, now);
+    if (alongside) await alongside(transactionId, now);
   });
   return after;
 }
@@ -176,7 +196,7 @@ const assignedTo = (actor: Actor): string =>
 function overdueQueries(now: Date): string[] {
   const cutoffs = overdueCutoffs(now);
   return [
-    Query.equal("status", ["open", "in-progress"]),
+    Query.equal("status", ["open", "assigned", "in-progress"]),
     Query.or(PRIORITY_VALUES.map((p) => Query.and([Query.equal("priority", p), Query.lessThan("createdAt", cutoffs[p])]))),
   ];
 }
@@ -210,15 +230,15 @@ export async function summarise(actor: Actor, now: Date = new Date()): Promise<R
   const status = (value: string, extra: string[] = []) => count([...scope, ...extra, Query.equal("status", value)]);
   const staff = actor.role !== "student";
   const mine = actor.role === "technician" ? [assignedTo(actor)] : null;
-  const [open, inProgress, resolved, closed, overdue, unassignedOpen, myTotal, myOpen, myInProgress, myResolved, myOverdue] = await Promise.all([
-    status("open"), status("in-progress"), status("resolved"), status("closed"),
+  const [open, assigned, inProgress, resolved, closed, overdue, unassignedOpen, myTotal, myOpen, myAssigned, myInProgress, myResolved, myOverdue] = await Promise.all([
+    status("open"), status("assigned"), status("in-progress"), status("resolved"), status("closed"),
     count([...scope, ...overdueQueries(now)]),
     staff ? count([Query.equal("status", "open"), Query.isNull("assignedTo"), Query.isNull("assignedToId")]) : 0,
-    mine ? count(mine) : 0, mine ? status("open", mine) : 0, mine ? status("in-progress", mine) : 0, mine ? status("resolved", mine) : 0, mine ? count([...mine, ...overdueQueries(now)]) : 0,
+    mine ? count(mine) : 0, mine ? status("open", mine) : 0, mine ? status("assigned", mine) : 0, mine ? status("in-progress", mine) : 0, mine ? status("resolved", mine) : 0, mine ? count([...mine, ...overdueQueries(now)]) : 0,
   ]);
   return {
-    ...EMPTY_SUMMARY, total: open + inProgress + resolved + closed, open, inProgress, resolved, closed, overdue, unassignedOpen,
-    mine: mine ? { total: myTotal, open: myOpen, inProgress: myInProgress, resolved: myResolved, overdue: myOverdue } : null,
+    ...EMPTY_SUMMARY, total: open + assigned + inProgress + resolved + closed, open, assigned, inProgress, resolved, closed, overdue, unassignedOpen,
+    mine: mine ? { total: myTotal, open: myOpen, assigned: myAssigned, inProgress: myInProgress, resolved: myResolved, overdue: myOverdue } : null,
   };
 }
 
@@ -399,7 +419,8 @@ export async function setStatus(actor: Actor, reportId: string, to: unknown): Pr
   if (!canSetStatus(actor, report, to)) {
     throw new HttpError(403, `You cannot change this report from "${report.status}" to "${to}".`);
   }
-  return change(report, actor, { status: to }, [{ type: "status", from: report.status, to }]);
+  // An emergency authorisation does not outlive a change of status.
+  return change(report, actor, { status: to, entryAuthorisedAt: null }, [{ type: "status", from: report.status, to }]);
 }
 
 export async function assignTechnician(actor: Actor, reportId: string, technicianId: unknown): Promise<ReportDTO> {
@@ -416,14 +437,31 @@ export async function assignTechnician(actor: Actor, reportId: string, technicia
     technician = { id: profile.id, name: (await currentNames()).get(profile.id) || profile.name };
   }
 
-  const nextStatus = technician && report.status === "open" ? "in-progress" : report.status;
+  // Naming a technician does not start the work: that takes a verified visit (lib/visit.ts).
+  const nextStatus = statusAfterAssignment(report.status, report.assignedToId, technician?.id ?? null);
+  const otherPerson = (technician?.id ?? null) !== report.assignedToId;
   const entries: LogInput[] = [{ type: "assignment", from: report.assignedTo, to: technician?.name ?? null }];
   if (nextStatus !== report.status) entries.push({ type: "status", from: report.status, to: nextStatus });
   return change(report, actor, {
     assignedTo: technician?.name ?? null,
     assignedToId: technician?.id ?? null,
     status: nextStatus,
-  }, entries);
+    // What was arranged for the earlier technician does not pass to the next one.
+    ...(otherPerson ? { entryAuthorisedAt: null } : {}),
+  }, entries, [], otherPerson ? await cancellingCode(report.id) : undefined);
+}
+
+/**
+ * The extra write that makes a report's visit code void, if it has one that
+ * could still be used. Should this read fail, the code is void all the same:
+ * a code works only for the technician it was made for (codeState).
+ */
+async function cancellingCode(reportId: string): Promise<Alongside | undefined> {
+  const row = await adminServices().tablesDB.getRow({ ...codeTable, rowId: reportId }).catch(() => null);
+  if (!row || row.usedAt || row.voidedAt) return undefined;
+  return async (transactionId, at) => {
+    await adminServices().tablesDB.updateRow({ ...codeTable, rowId: reportId, transactionId, data: { voidedAt: at, updatedAt: at } });
+  };
 }
 
 export async function overridePriority(actor: Actor, reportId: string, body: unknown): Promise<ReportDTO> {
@@ -464,7 +502,7 @@ export async function confirmRepair(actor: Actor, reportId: string, body: unknow
   ]);
 }
 
-/** The resident says the fault is not fixed, with a reason. The report goes back to "in progress". */
+/** The resident says the fault is not fixed, with a reason. The report goes back to its technician for a new visit (decision D35), or to the open queue without one. */
 export async function reportNotFixed(actor: Actor, reportId: string, body: unknown): Promise<ReportDTO> {
   const report = await getReportFor(actor, reportId);
   const problem = notFixedProblem(actor, report);
@@ -473,8 +511,9 @@ export async function reportNotFixed(actor: Actor, reportId: string, body: unkno
   if (!parsed.success) throw new HttpError(400, firstError(parsed));
   // With no technician on the report, the administrators are told instead.
   const administrators = report.assignedToId ? [] : await administratorIds();
-  return change(report, actor, { status: "in-progress", notFixedCount: report.notFixedCount + 1 }, [
-    { type: "not-fixed", from: "resolved", to: "in-progress", note: parsed.data.reason },
+  const back = restingStatus(!!(report.assignedToId || report.assignedTo));
+  return change(report, actor, { status: back, notFixedCount: report.notFixedCount + 1 }, [
+    { type: "not-fixed", from: "resolved", to: back, note: parsed.data.reason },
   ], administrators);
 }
 
