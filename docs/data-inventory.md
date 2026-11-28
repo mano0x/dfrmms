@@ -70,7 +70,7 @@ All data in the project is made up, except as listed here.
 
 | Bucket | Content | Who can read it |
 |--------|---------|-----------------|
-| `dormitory-fault-photos` | Photos attached to fault reports | Through `/api/photos/[id]`, only viewers of the report. The bucket itself still carries an old create permission for the `student` label that the application does not use; its removal is decided (D40) and not yet applied. |
+| `dormitory-fault-photos` | Photos attached to fault reports | Through `/api/photos/[id]`, only viewers of the report. The bucket itself grants nothing since 2026-11-28 (D40). |
 | `free-item-photos` | Photos of free items | Through `/api/free/photos/[id]`, only those who may see the item |
 
 Since module B4 every uploaded photo is decoded on the server and written

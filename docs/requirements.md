@@ -100,7 +100,7 @@ requirements. Until then only the prefix exists.
 | SEC-02 | Brute-force protection that an attacker cannot turn against the account owner; a limit per network address | Partly | B7 | Failures are counted per e-mail address only, so anyone can lock a known account; no limit per network address. |
 | SEC-03 | Session secret only in an httpOnly, Secure, SameSite=Strict cookie; revoked at sign-out | Built | | |
 | SEC-04 | Identity, role and object checks on the server for every route | Built for the routes that exist | every module | Checked again for each new route. |
-| SEC-05 | Tables and buckets grant the browser nothing | Partly | A1 or B4 | The older bucket `dormitory-fault-photos` still carries a create permission for the `student` label. The owner decided on 2026-11-28 to remove it (O13); the setup script can do it and shows it in `appwrite:check`; **not yet applied**. |
+| SEC-05 | Tables and buckets grant the browser nothing | Built | B4 | The last leftover, a create permission for the `student` label on the bucket `dormitory-fault-photos`, was removed on 2026-11-28 with the owner's approval (D40); both buckets were read back with no permissions. An API test checks it. |
 | SEC-06 | Requests that change data must come from this site's origin | Built | | |
 | SEC-07 | Schema validation and size limits on the server | Built for the routes that exist | every module | |
 | SEC-08 | Uploads checked by content, size-limited, private, served through an authorised route, metadata removed on the server | Built; API tests written, not yet run | B4 | Every upload is decoded and written anew on the server (`lib/server/image.ts`); unit tests show that a GPS position, a device and a name in the EXIF data are gone. |

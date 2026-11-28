@@ -5,10 +5,9 @@ Everything under a heading exists in the code. Section 7 says exactly which
 tests were run and what was not tested.
 
 Status on 2026-11-28: implemented; unit tests, lint, type-check and build
-pass. **Not yet done:** the bucket permission of section 5 is still in place
-on the Appwrite project (the change waits for the owner's word); the API
-tests are written and have not been run; `sharp` is used but not yet
-declared in `package.json`. Not merged into `main` and not deployed.
+pass; the bucket permission of section 5 was removed on 2026-11-28. **Not
+yet done:** the API tests are written and have not been run; `sharp` is used
+but not yet declared in `package.json`. Not merged into `main` and not deployed.
 
 ## 1. Purpose
 
@@ -91,14 +90,16 @@ Both upload routes (`/api/photos`, `/api/free/photos`) call one function,
 
 ## 5. The buckets grant nothing (SEC-05)
 
-The older bucket `dormitory-fault-photos` still lets accounts with the
-`student` label create files directly in Appwrite, a leftover from before
-the server-only design. The application never used it, but with it a
+Until 2026-11-28 the older bucket `dormitory-fault-photos` let accounts with
+the `student` label create files directly in Appwrite, a leftover from
+before the server-only design. The application never used it, but with it a
 resident could go around every step of section 4. The owner decided on
 2026-11-28 (O13) to remove it. `scripts/appwrite-setup.mjs` gained one
 narrow action for this: take away bucket-level permissions the definition
 does not list, send every other setting back as it was read, touch no file,
-and show the removal in `appwrite:check` first.
+and show the removal in `appwrite:check` first. It was applied on the same
+day; both buckets were read back with no permissions and all other settings
+unchanged.
 
 ## 6. The clean-up, and the dependency
 
