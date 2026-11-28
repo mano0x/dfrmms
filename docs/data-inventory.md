@@ -49,6 +49,7 @@ All data in the project is made up, except as listed here.
 |-------|---------------------|-----|------------------------------------------|
 | `users` | Name, e-mail, role, technician's specialisation; old text copies of dormitory and room (no longer read) | Profile | The person; administrators |
 | `fault_reports` | Resident's account ID and name, dormitory and room, the description, optional photo | Handling the fault | The resident who reported it; technicians; administrators |
+| `fault_reports` (since B3) | Whether the resident allowed entry in their absence; an administrator's emergency authorisation while it holds; when work started and how the technician got in | Proving and recording the visit | Everyone who may read the report |
 | `status_log` | Name and role of who changed a report, and when | Append-only history of a report | Viewers of that report |
 | `auth_attempts` | A hash of an e-mail address, a counter, times | Limits failed sign-ins | Server only. No readable address is stored. |
 | `neighbour_notices` | Sender's account ID; the text of the notice | Confidential notices | The sender; administrators; published notices also the residents of that dormitory, without the sender |
@@ -63,6 +64,7 @@ All data in the project is made up, except as listed here.
 | `allocation_locks` | Administrator's account ID for a few seconds | Prevents double allocation | Server only. Normally empty. |
 | `security_events` | Account ID of who did something and of whom it was about; the role; a short detail written by the code (and, for a lookup, the reason the administrator typed); a keyed hash of the network address, never the address | Record of events that matter for security | Administrators, with names instead of IDs and only a short mark of the hash; a person sees the entries about lookups of their own data, without the administrator's name |
 | `rate_limit_places` | None (the row ID is a hash of a limit's name and an account ID) | Lock rows for limits | Server only. Normally empty. |
+| `visit_codes` | Account IDs of the resident and the technician; a keyed hash of the visit code (never the code); when it expires, was used or made void; the number of guesses | Proving who is at the door (module B3) | Server only. The resident sees the state of their own code. Rows are removed by the daily job one day after the code expired. |
 
 ## Files
 

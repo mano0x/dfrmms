@@ -11,6 +11,12 @@ not in a single one, because the internet connection broke several full
 runs; the build plan records each run. Not merged into `main` and not
 deployed.
 
+**Changed by module B3 on 2026-11-28 (decision D35):** a report sent back
+as "not fixed" no longer goes to "in progress". It goes back to its
+technician as "assigned" (or to the open queue if it has none), because
+every visit must be verified; see `docs/visit-verification.md`. Where this
+document says "in progress" for that step, read "assigned".
+
 ## 1. Purpose
 
 Until this module a report ended when a technician marked it "resolved" and
@@ -18,8 +24,8 @@ an administrator closed it. Nobody asked the person who has to live with
 the repair. Now the resident who reported the fault answers (FR-11):
 
 - **It is fixed.** The report is closed. A rating from 1 to 5 is optional.
-- **It is not fixed.** The report goes back to "in progress" with the
-  resident's reason, and the technician is told.
+- **It is not fixed.** The report goes back to its technician ("assigned",
+  since B3) with the resident's reason, and the technician is told.
 - **No answer.** After seven days the report counts as closed.
 
 ## 2. Rules
@@ -84,8 +90,8 @@ add values to a list column, never remove one, and does not touch rows.
 - A confirmation writes `confirmed`, from "resolved" to "closed", by the
   resident. An automatic closing writes the same kind, by "System", with
   the note "Closed automatically: no answer within 7 days."
-- "Not fixed" writes `not-fixed`, from "resolved" to "in progress", with
-  the resident's reason as the note.
+- "Not fixed" writes `not-fixed`, from "resolved" to "assigned" (or to
+  "open" without a technician), with the resident's reason as the note.
 
 The report, its history entry and the messages are written in one
 transaction, as for every other change to a report.
@@ -102,7 +108,7 @@ everyone else (`forViewer` in `lib/server/reports.ts`).
 | Body | Who | Result |
 |------|-----|--------|
 | `{ action: "confirm", rating? }` | the resident who reported it | closed |
-| `{ action: "not-fixed", reason }` | the same | in progress |
+| `{ action: "not-fixed", reason }` | the same | assigned |
 
 Anything else in the body (a status, a count, a technician) is ignored.
 Another resident gets "not found", staff get "not allowed".
