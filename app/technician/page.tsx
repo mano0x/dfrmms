@@ -9,7 +9,7 @@ import {
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
 import { VisitStart } from "@/components/VisitStart";
-import { placeShort } from "@/lib/fault-location";
+import { isSharedArea, placeShort } from "@/lib/fault-location";
 import {
   Alert, AppShell, EmptyState, Icon, LoadingScreen, PageHeader, PriorityBadge, STATUSES, STATUS_BAR,
   Spinner, StatGrid, StatusBadge, Tabs, Tag, btn, categoryLabel, cx, inputCls, selectCls, selectInlineCls, statusLabel,
@@ -250,7 +250,9 @@ export default function TechnicianDashboard() {
                                 {r.status === "closed"
                                   ? "This report is closed. Only an administrator can reopen it."
                                   : r.status === "assigned"
-                                    ? "Work starts with the resident's visit code (above). After that you can mark the report as resolved."
+                                    ? isSharedArea(r)
+                                      ? "Start the work above. After that you can mark the report as resolved."
+                                      : "Work starts with the resident's visit code (above). After that you can mark the report as resolved."
                                     : "No further status changes are available to you."}
                               </p>
                             ) : (

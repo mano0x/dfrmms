@@ -27,7 +27,7 @@ again against the code before work begins.
 | FR-05 | User changes own password; a starting password must be changed at first sign-in | To build | B7 | |
 | FR-06 | Second factor for administrator and technician accounts | To build | F2 | |
 | FR-07 | Resident submits a fault: title, category, classification, description, optional photo | Built | | |
-| FR-08 | Resident chooses the location: own room or a shared area | Built and API-tested; pages not yet seen in a browser | B5 | `docs/fault-location.md` |
+| FR-08 | Resident chooses the location: own room or a shared area | Built, API-tested, pages checked in a browser | B5 | `docs/fault-location.md` |
 | FR-09 | Resident edits own report while it is open, unassigned and not triaged | Built | | |
 | FR-10 | Resident lists own reports with status, history and target time | Built | | |
 | FR-11 | Resident confirms a repair or reports it as not fixed, and rates it | Built | B2 | `docs/repair-confirmation.md`. The module's own API tests pass. |

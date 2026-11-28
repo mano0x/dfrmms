@@ -7,8 +7,8 @@ tests were run and what was not tested.
 Status on 2026-11-28: implemented; unit tests, lint, type-check and build
 pass; the two columns of section 4 were created on 2026-11-28. All 337 API
 tests of the project have passed on this code on that day, in two runs and
-not in a single one (section 6). **Not yet done:** the pages have not been
-looked at in a browser. Not
+not in a single one (section 6). The pages were checked by hand in a
+browser on the same day. Not
 merged into `main` and not deployed.
 
 ## 1. Purpose
@@ -108,7 +108,15 @@ messages; editing the location; and the visit: no code, no authorisation,
 only the assigned technician, only the fitting way, and a room that cannot
 be started as a shared area.
 
-Not tested: the pages in a browser; a screen reader.
+Checked by hand in a browser on 2026-11-28, with one report of a test
+resident that was created for the check and removed afterwards: the form
+with the area list, also at 360 px; what the resident, the technician and
+the administrator see of a shared-area report; and the technician's single
+"Start work" button at 360 px. One wrong line of text was found there and
+corrected (the build plan describes it).
+
+Not tested: in the browser, editing the location and the other seven
+areas; a screen reader.
 
 ## 7. Limitations and not implemented
 
