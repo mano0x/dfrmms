@@ -264,6 +264,13 @@ async function claimPhotos(actor: Actor, photoIds: string[], forListingId?: stri
   }
 }
 
+/** Whether any free item refers to this photo. For the daily clean-up of uploads that were never attached. */
+export async function listingPhotoIsAttached(fileId: string): Promise<boolean> {
+  const { rows } = await adminServices().tablesDB.listRows({ ...listingTable, queries: [Query.contains("photoIds", fileId), Query.limit(5)] });
+  // "contains" looks for the text anywhere in the list; the exact ID is compared again.
+  return rows.some((row) => String(row.photoIds ?? "").split(",").includes(fileId));
+}
+
 /** Checks that the caller may see the listing a photo belongs to. */
 export async function authorisePhoto(actor: Actor, fileId: string): Promise<void> {
   const viewer = await viewerFor(actor);

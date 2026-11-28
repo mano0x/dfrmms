@@ -31,7 +31,7 @@ again against the code before work begins.
 | FR-09 | Resident edits own report while it is open, unassigned and not triaged | Built | | |
 | FR-10 | Resident lists own reports with status, history and target time | Built | | |
 | FR-11 | Resident confirms a repair or reports it as not fixed, and rates it | Built | B2 | `docs/repair-confirmation.md`. The module's own API tests pass. |
-| FR-12 | Limits on reports and photo uploads per resident in 24 hours | To build | B4 | |
+| FR-12 | Limits on reports and photo uploads per resident in 24 hours | Built; API tests written, not yet run | B4 | `docs/abuse-limits.md`. 10 reports (20 in all for emergencies) and 20 photos of each kind. |
 | FR-13 | Technician sees assigned and all reports, filtered by status, with overdue marks | Built | | |
 | FR-14 | Technician changes status on assigned reports | Built | B3 changes it | The `assigned` status and the visit code change the transitions. |
 | FR-15 | Technician records resolution notes, each kept in the history | Built | | |
@@ -100,15 +100,15 @@ requirements. Until then only the prefix exists.
 | SEC-02 | Brute-force protection that an attacker cannot turn against the account owner; a limit per network address | Partly | B7 | Failures are counted per e-mail address only, so anyone can lock a known account; no limit per network address. |
 | SEC-03 | Session secret only in an httpOnly, Secure, SameSite=Strict cookie; revoked at sign-out | Built | | |
 | SEC-04 | Identity, role and object checks on the server for every route | Built for the routes that exist | every module | Checked again for each new route. |
-| SEC-05 | Tables and buckets grant the browser nothing | Partly | A1 or B4 | The older bucket `dormitory-fault-photos` still carries a create permission for the `student` label from before the server-only design. The application does not use it. Removing it alters a bucket, so it needs the owner's approval. |
+| SEC-05 | Tables and buckets grant the browser nothing | Partly | A1 or B4 | The older bucket `dormitory-fault-photos` still carries a create permission for the `student` label. The owner decided on 2026-11-28 to remove it (O13); the setup script can do it and shows it in `appwrite:check`; **not yet applied**. |
 | SEC-06 | Requests that change data must come from this site's origin | Built | | |
 | SEC-07 | Schema validation and size limits on the server | Built for the routes that exist | every module | |
-| SEC-08 | Uploads checked by content, size-limited, private, served through an authorised route, metadata removed on the server | Partly | B4 | Metadata is removed only by the resize in the browser. |
+| SEC-08 | Uploads checked by content, size-limited, private, served through an authorised route, metadata removed on the server | Built; API tests written, not yet run | B4 | Every upload is decoded and written anew on the server (`lib/server/image.ts`); unit tests show that a GPS position, a device and a name in the EXIF data are gone. |
 | SEC-09 | Security headers; a content policy without inline scripts | Partly | B8 | Headers are set; the policy allows inline scripts and styles. |
 | SEC-10 | Append-only histories written with the change | Built | | |
 | SEC-11 | Security events recorded and readable by administrators | Built | A3 | The network address is stored as a keyed hash only. |
 | SEC-12 | A notice never reveals its sender; a lookup needs a reason and is logged | Built | A3 | The lookup is also in the event log, written with the lookup itself, and the sender can read that it happened. |
-| SEC-13 | Abuse limits on every create route | Partly | A3, B4 | Notices and listings: the limit now holds under simultaneous requests (A3, API-tested); dormitories, room types, rooms and allocations have an hourly limit shared by all administrators (unit-tested, not tested through the API); reports, photos and account creation have none. |
+| SEC-13 | Abuse limits on every create route | Partly | A3, B4 | Notices and listings: the limit now holds under simultaneous requests (A3, API-tested); dormitories, room types, rooms and allocations have an hourly limit shared by all administrators (unit-tested, not tested through the API); reports and photo uploads: limited since B4 (`docs/abuse-limits.md`), visit codes and "no access" since B3. Earlier note: reports, photos and account creation have none. |
 | SEC-14 | Generic error messages; no internal detail leaves the server | Built | | |
 | SEC-15 | Secrets only in server settings; dependency audit and secret scan in CI | Built | A1 | CI first ran on 2026-11-21; both jobs succeeded. The audit step fails on high or critical advisories only. |
 | SEC-16 | A deactivated account cannot sign in and loses its sessions; starting passwords must be changed | Partly | B7 | A disabled account is refused; there is no way to deactivate one in the application, sessions are not revoked, and no forced change exists. |

@@ -13,6 +13,12 @@ export const users = new Users(adminClient);
 export const tablesDB = new TablesDB(adminClient);
 export const storage = new Storage(adminClient);
 
+/**
+ * A real picture: a PNG of one pixel. Since module B4 the server decodes
+ * every upload, so the first bytes of a PNG alone are no longer accepted.
+ */
+export const PNG = new Uint8Array(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"));
+
 export type Options = { method?: string; body?: unknown; form?: FormData; cookie?: string; origin?: string | null };
 
 export async function call(path: string, o: Options = {}) {

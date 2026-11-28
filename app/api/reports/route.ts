@@ -28,6 +28,6 @@ export async function POST(request: Request) {
   return handle(async () => {
     const guard = await requireCaller(request, ["student"]);
     if (guard.response) return guard.response;
-    return ok({ report: await createReport(guard.caller, await readJson(request)) }, 201);
+    return ok({ report: await createReport(guard.caller, await readJson(request), request) }, 201);
   });
 }

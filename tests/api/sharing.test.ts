@@ -9,7 +9,7 @@
  */
 import { Query } from "node-appwrite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { call, signIn, storage, tablesDB } from "./helpers";
+import { PNG, call, signIn, storage, tablesDB } from "./helpers";
 import { RUN_STARTED, removeTestEvents } from "./helpers";
 
 const DB = "dfrmms";
@@ -33,7 +33,6 @@ const inbox = async (cookie: string) => (await call("/api/notifications", { cook
 const row = (tableId: string, rowId: string) => tablesDB.getRow({ databaseId: DB, tableId, rowId });
 const lockExists = (id: string) => row("free_reservation_locks", id).then(() => true, () => false);
 
-const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0]);
 const upload = (cookie: string | undefined, bytes: Uint8Array, type = "image/png") => {
   const form = new FormData();
   form.append("photo", new Blob([bytes as BlobPart], { type }), "photo.png");

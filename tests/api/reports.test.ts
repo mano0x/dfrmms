@@ -6,7 +6,7 @@
  * the actions that the other roles must NOT be able to perform.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { call, removePhoto, removeReport, removeTestReports, signIn, users } from "./helpers";
+import { PNG, call, removePhoto, removeReport, removeTestReports, signIn, users } from "./helpers";
 import { RUN_STARTED, removeTestEvents } from "./helpers";
 
 let student1 = "", student2 = "", tech1 = "", tech2 = "", admin = "";
@@ -16,7 +16,6 @@ const createdPhotos: string[] = [];
 const valid = { title: "Ceiling light flickers", category: "electrical", urgency: "urgent", description: "The ceiling light flickers and then goes out." };
 const patch = (cookie: string, id: string, body: Record<string, unknown>) => call(`/api/reports/${id}`, { method: "PATCH", cookie, body });
 
-const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0]);
 const upload = (cookie: string | undefined, bytes: Uint8Array, name = "photo.png", type = "image/png") => {
   const form = new FormData();
   form.append("photo", new Blob([bytes as BlobPart], { type }), name);

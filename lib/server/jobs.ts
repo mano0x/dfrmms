@@ -17,14 +17,18 @@
  * This is the only place in the application that deletes rows, and it only
  * deletes rows that carry no information: locks that were left behind, and
  * visit codes that expired more than a day ago (a keyed hash nobody can use
- * any more). What it did is written to the security event log.
+ * any more). It is also the only place that deletes files: photos that were
+ * uploaded more than a day ago and never attached to a report or an item.
+ * What it did is written to the security event log.
  */
 import { timingSafeEqual } from "node:crypto";
 import { Query } from "node-appwrite";
 import { adminServices } from "../appwrite/server";
-import { DATABASE_ID, TABLES } from "../appwrite/config";
+import { DATABASE_ID, FREE_PHOTO_BUCKET_ID, PHOTO_BUCKET_ID, TABLES } from "../appwrite/config";
 import { recordEvent } from "./events";
-import { closeUnanswered } from "./reports";
+import { closeUnanswered, photoIsAttached } from "./reports";
+import { listingPhotoIsAttached } from "./sharing";
+import { removeUnattachedUploads } from "./uploads";
 
 /** True when the Authorization header carries exactly the configured secret. Compared in constant time. */
 export function isCronCall(authorization: string | null, secret: string | undefined = process.env.CRON_SECRET): boolean {
@@ -42,7 +46,7 @@ export const leftoverBefore = (now: Date = new Date()): string => new Date(now.g
 /** A visit code is valid for ten minutes; its row is kept for a day so that the hourly limit and any question about it can still be answered. */
 export const VISIT_CODE_KEEP_MS = 24 * 60 * 60 * 1000;
 
-export type DailyResult = { limitLocksRemoved: number; allocationLocksRemoved: number; reportsClosed: number; visitCodesRemoved: number };
+export type DailyResult = { limitLocksRemoved: number; allocationLocksRemoved: number; reportsClosed: number; visitCodesRemoved: number; faultPhotosRemoved: number; freePhotosRemoved: number };
 
 async function removeOlderThan(tableId: string, column: "createdAt" | "expiresAt", before: string): Promise<number> {
   const { tablesDB } = adminServices();
@@ -70,10 +74,13 @@ export async function runDailyJob(now: Date = new Date()): Promise<DailyResult> 
     // Resolved reports nobody answered within seven days: the closing every reader already sees is written down.
     reportsClosed: await closeUnanswered(now),
     visitCodesRemoved: await removeOlderThan(TABLES.visitCodes, "expiresAt", new Date(now.getTime() - VISIT_CODE_KEEP_MS).toISOString()),
+    // Photos uploaded more than a day ago that no report and no item refers to.
+    faultPhotosRemoved: await removeUnattachedUploads(PHOTO_BUCKET_ID, photoIsAttached, now),
+    freePhotosRemoved: await removeUnattachedUploads(FREE_PHOTO_BUCKET_ID, listingPhotoIsAttached, now),
   };
   await recordEvent({
     type: "job-run", outcome: "ok", targetType: "daily-job",
-    detail: `Leftover locks removed: ${result.limitLocksRemoved} for limits, ${result.allocationLocksRemoved} for room allocation. Unanswered reports closed: ${result.reportsClosed}. Expired visit codes removed: ${result.visitCodesRemoved}.`,
+    detail: `Leftover locks removed: ${result.limitLocksRemoved} for limits, ${result.allocationLocksRemoved} for room allocation. Unanswered reports closed: ${result.reportsClosed}. Expired visit codes removed: ${result.visitCodesRemoved}. Unattached photos removed: ${result.faultPhotosRemoved} of faults, ${result.freePhotosRemoved} of free items.`,
   });
   return result;
 }

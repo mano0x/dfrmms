@@ -11,7 +11,7 @@
 //   NEXT_PUBLIC_APPWRITE_ENDPOINT=https://fra.cloud.appwrite.io/v1
 //   NEXT_PUBLIC_APPWRITE_PROJECT_ID=<project id>
 //   APPWRITE_API_KEY=<server API key>
-import { Client, Permission, Role, Storage, TablesDB, TablesDBIndexType } from "node-appwrite";
+import { Client, Storage, TablesDB, TablesDBIndexType } from "node-appwrite";
 
 const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
 const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID;
@@ -479,9 +479,11 @@ const TABLES = [
 const BUCKET = {
   bucketId: BUCKET_ID,
   name: "Dormitory fault photos",
-  // Private bucket: only residents may upload; who may view each photo is set
-  // per file by the server (fileSecurity).
-  permissions: [Permission.create(Role.label("student"))],
+  // Private bucket with no permissions at all: the server uploads and serves
+  // every file itself (app/api/photos). Until module B4 this bucket still let
+  // accounts with the "student" label create files directly, a leftover from
+  // before the server-only design; see removeLeftoverBucketPermissions below.
+  permissions: [],
   fileSecurity: true,
   enabled: true,
   maximumFileSize: 5 * 1024 * 1024,
@@ -507,6 +509,38 @@ const FREE_BUCKET = {
 /* ------------------------------------------------------------------ */
 
 const report = { created: [], existing: [], wouldCreate: [], errors: [] };
+
+/**
+ * The one change this script may make to an existing bucket (decision O13,
+ * approved by the owner on 2026-11-28): take away bucket-level permissions
+ * that the definition above does not list. Every other setting is sent back
+ * exactly as it was read, and no file is touched. In check mode it only
+ * reports what it would remove.
+ */
+async function removeLeftoverBucketPermissions(definition) {
+  const bucket = await storage.getBucket({ bucketId: definition.bucketId }).catch(() => null);
+  if (!bucket) return;
+  const leftover = (bucket.$permissions ?? []).filter((p) => !definition.permissions.includes(p));
+  if (!leftover.length) return;
+  const label = `removal of the bucket permission ${leftover.map((p) => `'${p}'`).join(", ")} from ${definition.bucketId} (no file is touched; all other settings are kept)`;
+  if (checkOnly) {
+    report.wouldCreate.push(label);
+    return;
+  }
+  await storage.updateBucket({
+    bucketId: bucket.$id,
+    name: bucket.name,
+    permissions: definition.permissions,
+    fileSecurity: bucket.fileSecurity,
+    enabled: bucket.enabled,
+    maximumFileSize: bucket.maximumFileSize,
+    allowedFileExtensions: bucket.allowedFileExtensions,
+    compression: bucket.compression,
+    encryption: bucket.encryption,
+    antivirus: bucket.antivirus,
+  });
+  report.created.push(label);
+}
 
 /**
  * The one change this script may make to an existing column (decision D33):
@@ -630,6 +664,7 @@ try {
     () => storage.getBucket({ bucketId: FREE_BUCKET_ID }),
     () => storage.createBucket(FREE_BUCKET)
   );
+  await removeLeftoverBucketPermissions(BUCKET);
 } catch (err) {
   report.errors.push(`${err?.type ?? err?.name ?? "error"}: ${err?.message ?? err}`);
 }

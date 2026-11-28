@@ -28,6 +28,9 @@ import { autoCloseDue, canSeeRating, confirmInputSchema, confirmProblem, effecti
 import { rowsToFetch, toPage, type PageQuery } from "../paging";
 import { EMPTY_SUMMARY, filterProblem, overdueCutoffs, reportFilterSchema, type ReportFilter, type ReportSummary } from "../report-list";
 import { PRIORITY_VALUES } from "../maintenance";
+import { EMERGENCY_REPORT_LIMIT, REPORT_LIMIT, reportLimitProblem, windowStart } from "../abuse-limits";
+import { oneAtATime } from "./limiter";
+import { recordEvent } from "./events";
 
 
 export type ReportDTO = {
@@ -330,6 +333,12 @@ async function claimPhoto(actor: Actor, fileId: string, forReportId?: string) {
   if (rows.some((r) => r.$id !== forReportId)) throw new HttpError(400, "That photo is already attached to another report.");
 }
 
+/** Whether any report refers to this photo. For the daily clean-up of uploads that were never attached. */
+export async function photoIsAttached(fileId: string): Promise<boolean> {
+  const { total } = await adminServices().tablesDB.listRows({ ...reportTable, queries: [Query.equal("photoFileId", fileId), Query.limit(1)] });
+  return total > 0;
+}
+
 /** The report a photo belongs to, if the caller may see that report. */
 export async function reportForPhoto(actor: Actor, fileId: string): Promise<ReportDTO> {
   const { rows } = await adminServices().tablesDB.listRows({ ...reportTable, queries: [Query.equal("photoFileId", fileId), Query.limit(1)] });
@@ -349,7 +358,7 @@ const photoIdOf = (body: unknown): string | null => {
   return id;
 };
 
-export async function createReport(actor: Actor, body: unknown): Promise<ReportDTO> {
+export async function createReport(actor: Actor, body: unknown, request?: Request): Promise<ReportDTO> {
   if (!canCreateReport(actor)) throw new HttpError(403, "Only residents can submit fault reports.");
   const parsed = reportInputSchema.safeParse(body);
   if (!parsed.success) throw new HttpError(400, firstError(parsed));
@@ -360,6 +369,16 @@ export async function createReport(actor: Actor, body: unknown): Promise<ReportD
   // A resident without a room today reads their earlier reports but submits none.
   const [profile, residence] = await Promise.all([getProfile(actor.id), residenceFor(actor.id)]);
   if (!residence) throw new HttpError(403, "You have no room in a dormitory at the moment, so a report cannot be submitted. Contact an administrator.");
+
+  // Counting and writing happen under a lock, so two reports sent at the same moment cannot both pass the limit.
+  return oneAtATime("report", actor.id, async () => {
+  const { total } = await adminServices().tablesDB.listRows({ ...reportTable, queries: [Query.equal("studentId", actor.id), Query.greaterThan("createdAt", windowStart()), Query.limit(1)] });
+  const over = reportLimitProblem(total, parsed.data.urgency);
+  if (over) {
+    const limit = parsed.data.urgency === "emergency" ? EMERGENCY_REPORT_LIMIT : REPORT_LIMIT;
+    await recordEvent({ type: "rate-limited", outcome: "refused", actorId: actor.id, actorRole: actor.role, targetType: "report", detail: `Limit of ${limit} reports in 24 hours reached.` }, request);
+    throw new HttpError(429, over);
+  }
   const now = new Date().toISOString();
   const id = ID.unique();
   const data = {
@@ -391,6 +410,7 @@ export async function createReport(actor: Actor, body: unknown): Promise<ReportD
     for (const m of messages) await notify(transactionId, m.userId, m.message, now);
   });
   return toReport({ $id: id, ...data });
+  });
 }
 
 export async function editReport(actor: Actor, reportId: string, body: unknown): Promise<ReportDTO> {

@@ -282,3 +282,35 @@ the declaration as well.
 - The API tests passed in two runs, not in one (build plan, 2026-11-28).
   Repeat `npm run test:api` on a stable connection before relying on it.
 - Try all four ways in yourself, with test accounts, before the defence.
+
+## 2026-11-28: B4, abuse limits and photo hardening
+
+**Module:** B4.
+
+**What the AI generated or changed**
+
+- Wrote `lib/abuse-limits.ts` (limits, and when an upload may be removed),
+  `lib/server/image.ts` (re-encoding with `sharp`) and
+  `lib/server/uploads.ts` (one upload function for both buckets, and the
+  clean-up), with 17 unit tests.
+- Added the report limit to `createReport` and two tasks to the daily job.
+- Gave the setup script one narrow action on an existing bucket (D40).
+- Wrote `tests/api/abuse-limits.test.ts` (19 tests) and
+  `docs/abuse-limits.md`; changed two older API test files that had used
+  the first bytes of a PNG as a picture.
+
+**What the owner decided**
+
+- The numbers of the limits and the rule for emergencies (D39), and the
+  removal of the bucket permission (D40). The AI proposed options.
+
+**What the author must review and verify**
+
+- Read `reencode` and explain why no metadata survives it, and why this is
+  done on the server although the browser already resizes the photo.
+- Read the unit test that builds a photo with a GPS position: it is the
+  evidence for SEC-08.
+- Read `removeUnattachedUploads` and `mayRemoveUpload`: this is the only
+  code that deletes files. Check that a failed lookup keeps the file.
+- The API tests of this module had not been run when this entry was
+  written. Do not rely on them until the build plan records a run.

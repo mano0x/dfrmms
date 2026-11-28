@@ -70,11 +70,15 @@ All data in the project is made up, except as listed here.
 
 | Bucket | Content | Who can read it |
 |--------|---------|-----------------|
-| `dormitory-fault-photos` | Photos attached to fault reports | Through `/api/photos/[id]`, only viewers of the report. The bucket itself still carries an old create permission for the `student` label that the application does not use (open decision O13). |
+| `dormitory-fault-photos` | Photos attached to fault reports | Through `/api/photos/[id]`, only viewers of the report. The bucket itself still carries an old create permission for the `student` label that the application does not use; its removal is decided (D40) and not yet applied. |
 | `free-item-photos` | Photos of free items | Through `/api/free/photos/[id]`, only those who may see the item |
 
-Photos are resized in the browser before upload, which removes most
-metadata. Removing metadata on the server is planned for module B4.
+Since module B4 every uploaded photo is decoded on the server and written
+anew from its pixels, so a stored photo carries no hidden data (place,
+time, device, name). The sender's file name is not kept. A photo that is
+not attached to a report or an item a day after its upload is removed by
+the daily job, which records how many it removed. Photos stored before B4
+were not re-encoded; on 2026-11-28 both buckets were empty.
 
 ## Outside the database
 
