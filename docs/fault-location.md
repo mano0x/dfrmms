@@ -5,10 +5,9 @@ Everything under a heading exists in the code. Section 6 says exactly which
 tests were run and what was not tested.
 
 Status on 2026-11-28: implemented; unit tests, lint, type-check and build
-pass. **Not yet done:** the two columns of section 4 do not exist in the
-Appwrite project yet (the change waits for the owner's word), so a report
-cannot be stored with this code until then; the API tests are written and
-have not been run; the pages have not been looked at in a browser. Not
+pass; the two columns of section 4 were created on 2026-11-28. **Not yet
+done:** the API tests are written and have not been run; the pages have not
+been looked at in a browser. Not
 merged into `main` and not deployed.
 
 ## 1. Purpose
