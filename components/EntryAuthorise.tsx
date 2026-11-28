@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { authoriseEntry, formatDateTime, type Report } from "@/lib/reports";
 import { Field, btn, inputCls } from "@/components/ui";
+import { isSharedArea } from "@/lib/fault-location";
 
 /**
  * The administrator's emergency authorisation, shown on a report that waits
@@ -12,7 +13,8 @@ import { Field, btn, inputCls } from "@/components/ui";
  */
 export function EntryAuthorise({ report, busy, run }: { report: Report; busy: boolean; run: (action: () => Promise<Report>) => Promise<boolean> }) {
   const [reason, setReason] = useState("");
-  if (report.status !== "assigned" || !report.assignedToId) return null;
+  // A fault in a shared area needs no authorisation: nobody's room is entered.
+  if (report.status !== "assigned" || !report.assignedToId || isSharedArea(report)) return null;
 
   return (
     <div className="mt-5">

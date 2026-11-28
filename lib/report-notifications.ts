@@ -12,6 +12,7 @@
  *     the reason typed for a priority change: those are read on the report
  *     itself, where access is checked again.
  */
+import { placeLabel } from "./fault-location";
 
 export type ReportChange = {
   type: "created" | "edited" | "status" | "assignment" | "priority" | "note" | "confirmed" | "not-fixed" | "visit-verified" | "entered-in-absence" | "emergency-entry" | "entry-authorised" | "no-access";
@@ -25,6 +26,9 @@ export type ReportParties = {
   studentId: string;
   dormitory: string;
   roomNumber: string;
+  /** "room" or "shared"; missing on reports from before module B5, which are about a room. */
+  locationType?: string | null;
+  area?: string | null;
   assignedToId: string | null;
 };
 
@@ -43,7 +47,8 @@ export const codeVoidMessage = (report: Pick<ReportParties, "title" | "studentId
 export const SYSTEM_ACTOR_ID = "system";
 
 const quoted = (title: string): string => `"${title.length > 80 ? `${title.slice(0, 77)}...` : title}"`;
-const place = (report: ReportParties): string => `${report.dormitory}, room ${report.roomNumber}`;
+/** "Dormitory A, room 204", or "Dormitory A, kitchen (shared area)" for a fault in a shared area. */
+const place = (report: ReportParties): string => placeLabel(report);
 
 const STATUS_NAME: Record<string, string> = { open: "open", assigned: "assigned", "in-progress": "in progress", resolved: "resolved", closed: "closed" };
 const statusName = (status: string | null | undefined): string => STATUS_NAME[status ?? ""] ?? String(status ?? "unknown");

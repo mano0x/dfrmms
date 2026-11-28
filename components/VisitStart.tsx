@@ -3,6 +3,7 @@ import { useState } from "react";
 import { openDoors } from "@/lib/visit";
 import { recordNoAccess, startWithoutCode, verifyVisit, type Report } from "@/lib/reports";
 import { Field, btn, inputCls } from "@/components/ui";
+import { isSharedArea, placeShort } from "@/lib/fault-location";
 
 /**
  * The technician's side of a visit, shown on a report assigned to them that
@@ -15,9 +16,23 @@ export function VisitStart({ report, busy, run }: { report: Report; busy: boolea
   const [note, setNote] = useState("");
   const doors = openDoors({
     studentId: report.studentId, status: report.status, assignedToId: report.assignedToId,
-    entryAllowed: report.entryAllowed, entryAuthorisedAt: report.entryAuthorisedAt, sharedArea: false,
+    entryAllowed: report.entryAllowed, entryAuthorisedAt: report.entryAuthorisedAt, sharedArea: isSharedArea(report),
   });
   if (!doors.code && !doors.shared) return null;
+
+  if (doors.shared) {
+    return (
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Start work</p>
+        <p className="mt-2 text-sm text-ink-2">
+          This fault is in a shared area ({placeShort(report)}), so no visit code is needed. Starting records when work began and tells the resident.
+        </p>
+        <button type="button" className={`${btn.primary} mt-3`} disabled={busy} onClick={() => run(() => startWithoutCode(report.id, "shared"))}>
+          Start work
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>

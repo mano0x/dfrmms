@@ -13,7 +13,7 @@ import {
 } from "../access";
 import {
   firstError, priorityForClassification, priorityOverrideSchema, reportInputSchema, resolutionNoteSchema, restingStatus, statusAfterAssignment,
-  STATUS_VALUES, type Role,
+  STATUS_VALUES, type ReportInput, type Role,
 } from "../maintenance";
 import { photoBelongsTo } from "../image-rules";
 import { getProfile } from "./profiles";
@@ -30,6 +30,7 @@ import { EMPTY_SUMMARY, filterProblem, overdueCutoffs, reportFilterSchema, type 
 import { PRIORITY_VALUES } from "../maintenance";
 import { EMERGENCY_REPORT_LIMIT, REPORT_LIMIT, reportLimitProblem, windowStart } from "../abuse-limits";
 import { oneAtATime } from "./limiter";
+import { storedLocation } from "../fault-location";
 import { recordEvent } from "./events";
 
 
@@ -69,6 +70,10 @@ export type ReportDTO = {
   workStartedAt: string | null;
   /** How the technician got in that time: "code", "absence", "emergency" or "shared". */
   entryMode: string | null;
+  /** Where the fault is: "room" (the resident's own) or "shared" (an area of their dormitory). */
+  locationType: string;
+  /** The shared area, when the fault is in one. */
+  area: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -122,6 +127,9 @@ const toReport = (row: any): ReportDTO => ({
   entryAuthorisedAt: row.entryAuthorisedAt ?? null,
   workStartedAt: row.workStartedAt ?? null,
   entryMode: row.entryMode ?? null,
+  // Reports from before module B5 have no location: they are about the resident's room.
+  locationType: row.locationType ?? "room",
+  area: row.area ?? null,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 });
@@ -358,6 +366,17 @@ const photoIdOf = (body: unknown): string | null => {
   return id;
 };
 
+/**
+ * The columns a resident fills in, from a validated form. The location is
+ * stored as its own two columns. For a fault in a shared area nobody's room
+ * is entered, so the permission for entry in absence is not kept.
+ */
+function contentOf(input: ReportInput) {
+  const { location, area, ...rest } = input;
+  const place = storedLocation({ location, area });
+  return { ...rest, ...place, entryAllowed: place.locationType === "shared" ? false : rest.entryAllowed };
+}
+
 export async function createReport(actor: Actor, body: unknown, request?: Request): Promise<ReportDTO> {
   if (!canCreateReport(actor)) throw new HttpError(403, "Only residents can submit fault reports.");
   const parsed = reportInputSchema.safeParse(body);
@@ -382,7 +401,7 @@ export async function createReport(actor: Actor, body: unknown, request?: Reques
   const now = new Date().toISOString();
   const id = ID.unique();
   const data = {
-    ...parsed.data,
+    ...contentOf(parsed.data),
     priority: priorityForClassification(parsed.data.urgency),
     priorityOverridden: false,
     photoFileId,
@@ -402,7 +421,7 @@ export async function createReport(actor: Actor, body: unknown, request?: Reques
     createdAt: now,
     updatedAt: now,
   };
-  const parties = { title: data.title, studentId: actor.id, dormitory: data.dormitory, roomNumber: data.roomNumber, assignedToId: null };
+  const parties = { title: data.title, studentId: actor.id, dormitory: data.dormitory, roomNumber: data.roomNumber, locationType: data.locationType, area: data.area, assignedToId: null };
   const messages = notificationsForChanges([{ type: "created", to: "open" }], parties, parties, actor.id, await administratorIds());
   await inTransaction(async (transactionId) => {
     await adminServices().tablesDB.createRow({ ...reportTable, rowId: id, transactionId, permissions: [], data });
@@ -425,7 +444,7 @@ export async function editReport(actor: Actor, reportId: string, body: unknown):
   if (requestedPhoto && requestedPhoto !== report.photoFileId) await claimPhoto(actor, requestedPhoto, report.id);
 
   return change(report, actor, {
-    ...parsed.data,
+    ...contentOf(parsed.data),
     priority: priorityForClassification(parsed.data.urgency),
     photoFileId,
   }, [{ type: "edited" }]);

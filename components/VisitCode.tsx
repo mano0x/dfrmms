@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { errorMessage, fetchReport, fetchVisitCode, formatDateTime, requestVisitCode, toDate, type Report, type VisitCodeView } from "@/lib/reports";
 import { Alert, btn } from "@/components/ui";
+import { isSharedArea } from "@/lib/fault-location";
 
 const ENTRY_TEXT: Record<string, string> = {
   code: "Verified",
@@ -41,13 +42,14 @@ export function EntryChoice({ name, value, onChange }: { name: string; value: bo
  */
 export function VisitCode({ report, onChanged }: { report: Report; onChanged: (updated: Report) => void }) {
   const waiting = report.status === "assigned" && !!report.assignedToId;
+  const shared = isSharedArea(report);
   const [view, setView] = useState<VisitCodeView | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!waiting) return;
+    if (!waiting || shared) return;
     let cancelled = false;
     fetchVisitCode(report.id)
       .then((v) => {
@@ -59,7 +61,7 @@ export function VisitCode({ report, onChanged }: { report: Report; onChanged: (u
     return () => {
       cancelled = true;
     };
-  }, [report.id, report.updatedAt, waiting]);
+  }, [report.id, report.updatedAt, waiting, shared]);
 
   if (!waiting) {
     // After the visit: who was let in, how and when.
@@ -69,6 +71,14 @@ export function VisitCode({ report, onChanged }: { report: Report; onChanged: (u
       <p className="mt-4 text-sm text-ink-2">
         <span className="font-medium text-ink">{ENTRY_TEXT[report.entryMode ?? ""] ?? "Work started"}:</span>{" "}
         {report.assignedTo || "the technician"}, {formatDateTime(report.workStartedAt)}
+      </p>
+    );
+  }
+
+  if (shared) {
+    return (
+      <p className="mt-4 text-sm text-ink-2">
+        {report.assignedTo || "A technician"} is assigned to this report. The fault is in a shared area, so the technician needs no visit code and does not enter your room.
       </p>
     );
   }

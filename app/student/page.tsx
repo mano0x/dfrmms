@@ -12,6 +12,8 @@ import {
 import { TargetBadge, Timeline } from "@/components/Timeline";
 import { RepairAnswer } from "@/components/RepairAnswer";
 import { EntryChoice, VisitCode } from "@/components/VisitCode";
+import { LocationChoice } from "@/components/LocationChoice";
+import { placeLabel, type FaultArea, type LocationType } from "@/lib/fault-location";
 import {
   Alert, AppShell, CATEGORIES, Card, Detail, EmptyState, Field, FilePicker, Icon,
   LoadingScreen, PageHeader, PriorityBadge, STATUSES, STATUS_BAR, Spinner, StatGrid,
@@ -75,6 +77,8 @@ export default function StudentDashboard() {
   const [category, setCategory] = useState("electrical");
   const [urgency, setUrgency] = useState("normal");
   const [entryAllowed, setEntryAllowed] = useState<boolean | null>(null);
+  const [faultLocation, setFaultLocation] = useState<LocationType>("room");
+  const [faultArea, setFaultArea] = useState<FaultArea | "">("");
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
   const [filterStatus, setFilterStatus] = useState("all");
@@ -86,6 +90,8 @@ export default function StudentDashboard() {
   const [editCategory, setEditCategory] = useState("electrical");
   const [editUrgency, setEditUrgency] = useState("normal");
   const [editEntryAllowed, setEditEntryAllowed] = useState<boolean | null>(null);
+  const [editLocation, setEditLocation] = useState<LocationType>("room");
+  const [editArea, setEditArea] = useState<FaultArea | "">("");
   const [editDescription, setEditDescription] = useState("");
   const [editPhoto, setEditPhoto] = useState<File | null>(null);
 
@@ -103,8 +109,9 @@ export default function StudentDashboard() {
   const fetchError = list.error;
 
   const handleSubmit = async () => {
-    if (entryAllowed === null) { setSuccessMsg("❌ Say whether a technician may enter your room in your absence."); return; }
-    const parsed = reportInputSchema.safeParse({ title, category, urgency, description, entryAllowed });
+    // The entry question is about the resident's room; for a shared area it is not asked.
+    if (faultLocation === "room" && entryAllowed === null) { setSuccessMsg("❌ Say whether a technician may enter your room in your absence."); return; }
+    const parsed = reportInputSchema.safeParse({ title, category, urgency, description, entryAllowed: faultLocation === "room" && entryAllowed === true, location: faultLocation, area: faultLocation === "shared" ? faultArea || null : null });
     if (!parsed.success) { setSuccessMsg(`❌ ${firstError(parsed)}`); return; }
     const photoError = validatePhoto(photo);
     if (photoError) { setSuccessMsg(`❌ ${photoError}`); return; }
@@ -118,7 +125,7 @@ export default function StudentDashboard() {
 
       setSuccessMsg("✓ Report submitted successfully!");
       setTitle(""); setCategory("electrical"); setUrgency("normal");
-      setDescription(""); setPhoto(null); setEntryAllowed(null);
+      setDescription(""); setPhoto(null); setEntryAllowed(null); setFaultLocation("room"); setFaultArea("");
       list.reload();
       setTimeout(() => setActiveTab("history"), 1500);
     } catch (err) {
@@ -140,6 +147,8 @@ export default function StudentDashboard() {
     setEditCategory(report.category);
     setEditUrgency(report.urgency || "normal");
     setEditEntryAllowed(report.entryAllowed);
+    setEditLocation(report.locationType === "shared" ? "shared" : "room");
+    setEditArea((report.area as FaultArea | null) ?? "");
     setEditDescription(report.description);
     setEditPhoto(null);
   };
@@ -150,7 +159,8 @@ export default function StudentDashboard() {
       return;
     }
     const parsed = reportInputSchema.safeParse({
-      title: editTitle, category: editCategory, urgency: editUrgency, description: editDescription, entryAllowed: editEntryAllowed === true,
+      title: editTitle, category: editCategory, urgency: editUrgency, description: editDescription, entryAllowed: editLocation === "room" && editEntryAllowed === true,
+      location: editLocation, area: editLocation === "shared" ? editArea || null : null,
     });
     if (!parsed.success) { setEditError(firstError(parsed)); return; }
     const photoError = validatePhoto(editPhoto);
@@ -288,7 +298,9 @@ export default function StudentDashboard() {
                 <UrgencyPicker value={urgency} onChange={setUrgency} name="urgency" />
               </Field>
 
-              <EntryChoice name="entry-allowed" value={entryAllowed} onChange={setEntryAllowed} />
+              <LocationChoice name="fault-location" location={faultLocation} area={faultArea} onLocation={setFaultLocation} onArea={setFaultArea} />
+
+              {faultLocation === "room" && <EntryChoice name="entry-allowed" value={entryAllowed} onChange={setEntryAllowed} />}
 
               <Field label="Description" required htmlFor="description">
                 <textarea
@@ -484,7 +496,8 @@ export default function StudentDashboard() {
                   <Field label="Maintenance classification">
                     <UrgencyPicker value={editUrgency} onChange={setEditUrgency} name="edit-urgency" />
                   </Field>
-                  <EntryChoice name="edit-entry-allowed" value={editEntryAllowed} onChange={setEditEntryAllowed} />
+                  <LocationChoice name="edit-fault-location" location={editLocation} area={editArea} onLocation={setEditLocation} onArea={setEditArea} />
+                  {editLocation === "room" && <EntryChoice name="edit-entry-allowed" value={editEntryAllowed} onChange={setEditEntryAllowed} />}
                   <div className="flex items-center gap-2 text-sm text-muted">
                     New priority: <PriorityBadge priority={calcPriority(editUrgency)} />
                   </div>
@@ -533,7 +546,7 @@ export default function StudentDashboard() {
                   <dl className="mt-6 grid gap-5 sm:grid-cols-2">
                     <Detail label="Submitted">{formatDateTime(selectedReport.createdAt)}</Detail>
                     <Detail label="Location">
-                      {selectedReport.dormitory || "—"} · Room {selectedReport.roomNumber || "—"}
+                      {placeLabel(selectedReport)}
                     </Detail>
                     <Detail label="Assigned technician">{selectedReport.assignedTo || "Not assigned yet"}</Detail>
                     <Detail label="Report ID">

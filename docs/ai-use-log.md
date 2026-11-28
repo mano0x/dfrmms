@@ -336,3 +336,33 @@ the declaration as well.
 - Read `classifyLookupError`: which answers count as "not signed in" is a
   security decision. Check that no failure can ever produce a caller.
 - The 503 answer was not seen through the running application.
+
+## 2026-11-28: B5, location of a fault
+
+**Module:** B5.
+
+**What the AI generated or changed**
+
+- Wrote `lib/fault-location.ts` with 8 unit tests and added its two fields
+  to the report form's schema.
+- Changed `lib/server/reports.ts` (what is stored), `lib/server/visits.ts`
+  (the shared-area way of B3 now has a real value) and the wording of the
+  messages to staff.
+- Wrote `components/LocationChoice.tsx` and changed the three report pages
+  and the three visit components.
+- Wrote `tests/api/fault-location.test.ts` (15 tests) and
+  `docs/fault-location.md`.
+
+**What the AI decided without the owner (D42)**
+
+- No field for floor or wing; no shared view of reports for residents; the
+  reporter's room stays on the report; unknown values count as a room.
+  These were told to the owner before the code was written.
+
+**What the author must review and verify**
+
+- Read `isSharedArea` and `visitOf`: together they decide when a
+  technician needs no code. Check that nothing in a request can change it.
+- Decide whether duplicates of shared-area reports are acceptable.
+- The API tests of this module had not been run when this entry was
+  written. Do not rely on them until the build plan records a run.

@@ -12,7 +12,7 @@ import type { CodeView, EntryMode } from "./visit";
 export type Report = ReportDTO;
 export type LogEntry = HistoryDTO;
 
-export type ReportInput = { title: string; category: string; urgency: string; description: string; entryAllowed?: boolean; photoFileId?: string | null };
+export type ReportInput = { title: string; category: string; urgency: string; description: string; entryAllowed?: boolean; location?: string; area?: string | null; photoFileId?: string | null };
 
 export type ReportListFilter = ReportFilter;
 export type ReportCounts = ReportSummary;

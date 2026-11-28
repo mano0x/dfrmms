@@ -15,6 +15,7 @@ import {
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
 import { EntryAuthorise } from "@/components/EntryAuthorise";
+import { isSharedArea, placeLabel, placeShort } from "@/lib/fault-location";
 import {
   Alert, AppShell, Card, Detail, Field, Icon, LoadingScreen, PRIORITIES, PageHeader, PriorityBadge,
   STATUSES, Spinner, StatGrid, StatusBadge, Tabs, Tag, URGENCIES, btn, categoryLabel, cx, inputCls,
@@ -333,7 +334,7 @@ export default function AdminDashboard() {
                         </p>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-ink-2">
-                        {r.dormitory} · {r.roomNumber}
+                        {r.dormitory} · {isSharedArea(r) ? placeShort(r) : r.roomNumber}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col items-start gap-1.5">
@@ -552,7 +553,7 @@ export default function AdminDashboard() {
 
                 <dl className="mt-5 grid gap-4 sm:grid-cols-2">
                   <Detail label="Reported by">{selected.studentName || "—"}</Detail>
-                  <Detail label="Location">{selected.dormitory || "—"} · Room {selected.roomNumber || "—"}</Detail>
+                  <Detail label="Location">{placeLabel(selected)}{isSharedArea(selected) && ` · reporter's room ${selected.roomNumber || "—"}`}</Detail>
                   {(selected.rating || selected.notFixedCount > 0) && (
                     <Detail label="Resident's answer">
                       {selected.rating ? `Rated ${selected.rating} of 5` : "No rating"}

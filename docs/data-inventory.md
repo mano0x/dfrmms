@@ -49,6 +49,7 @@ All data in the project is made up, except as listed here.
 |-------|---------------------|-----|------------------------------------------|
 | `users` | Name, e-mail, role, technician's specialisation; old text copies of dormitory and room (no longer read) | Profile | The person; administrators |
 | `fault_reports` | Resident's account ID and name, dormitory and room, the description, optional photo | Handling the fault | The resident who reported it; technicians; administrators |
+| `fault_reports` (since B5) | Whether the fault is in the resident's room or in a shared area of their dormitory, and which area | Sending the technician to the right place | Everyone who may read the report |
 | `fault_reports` (since B3) | Whether the resident allowed entry in their absence; an administrator's emergency authorisation while it holds; when work started and how the technician got in | Proving and recording the visit | Everyone who may read the report |
 | `status_log` | Name and role of who changed a report, and when | Append-only history of a report | Viewers of that report |
 | `auth_attempts` | A hash of an e-mail address, a counter, times | Limits failed sign-ins | Server only. No readable address is stored. |

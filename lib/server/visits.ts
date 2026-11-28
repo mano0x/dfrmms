@@ -21,6 +21,7 @@ import {
   type CodeView, type StoredCode, type VisitReport,
 } from "../visit";
 import { codeVoidMessage } from "../report-notifications";
+import { isSharedArea } from "../fault-location";
 import { HttpError } from "./http";
 import { inTransaction } from "./transaction";
 import { notify } from "./notifications";
@@ -58,14 +59,14 @@ async function readCode(reportId: string): Promise<CodeRow | null> {
   }
 }
 
-/** The parts of a report the visit rules need. Shared areas come with module B5; until then every fault is in a room. */
+/** The parts of a report the visit rules need. A fault in a shared area needs no proof at the door (module B5). */
 const visitOf = (report: ReportDTO): VisitReport => ({
   studentId: report.studentId,
   status: report.status,
   assignedToId: report.assignedToId,
   entryAllowed: report.entryAllowed,
   entryAuthorisedAt: report.entryAuthorisedAt,
-  sharedArea: false,
+  sharedArea: isSharedArea(report),
 });
 
 /** A code that can still be used stops being usable in the same transaction as the change that ends its purpose. */

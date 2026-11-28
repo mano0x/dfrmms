@@ -66,9 +66,9 @@ emergency authorisation, and neither opens a report for another technician.
 An authorisation is used up when work starts and is dropped when the
 technician or the status changes.
 
-**Shared areas** are part of the rules (`needsCode`) but a resident cannot
-yet report a fault in one: that is module B5. Until then every fault is in
-a room and needs proof.
+**Shared areas** are part of the rules (`needsCode`). Since module B5 a
+resident can report a fault in one (`docs/fault-location.md`); every other
+fault is in a room and needs proof.
 
 ## 4. Rules for the code
 

@@ -4,6 +4,7 @@
  * tested and reused by the pages, and so the business rules live in one place.
  */
 import { z } from "zod";
+import { locationFields, locationProblem } from "./fault-location";
 
 /* ------------------------------------------------------------------ */
 /* Vocabulary                                                          */
@@ -162,14 +163,21 @@ export function targetLabel(createdAt: Date | null | undefined, priority: string
 /* Input validation                                                    */
 /* ------------------------------------------------------------------ */
 
-export const reportInputSchema = z.object({
+export const reportInputSchema = z
+  .object({
   title: z.string().trim().min(5, "The title must be at least 5 characters.").max(120, "The title must be at most 120 characters."),
   category: z.enum(CATEGORY_VALUES, { message: "Choose a valid category." }),
   urgency: z.enum(CLASSIFICATION_VALUES, { message: "Choose a maintenance classification." }),
   description: z.string().trim().min(10, "Describe the problem in at least 10 characters.").max(2000, "The description must be at most 2000 characters."),
   /** May a technician enter the room when the resident is not there? Left out means no. */
   entryAllowed: z.boolean({ message: "Say whether a technician may enter in your absence." }).optional().default(false),
-});
+  /** In the resident's room or in a shared area of their dormitory (lib/fault-location.ts). Left out means the room. */
+  ...locationFields,
+  })
+  .superRefine((input, ctx) => {
+    const problem = locationProblem(input);
+    if (problem) ctx.addIssue({ code: "custom", message: problem, path: ["area"] });
+  });
 export type ReportInput = z.infer<typeof reportInputSchema>;
 
 export const resolutionNoteSchema = z

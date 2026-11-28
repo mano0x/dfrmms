@@ -46,6 +46,7 @@ const CLASSIFICATIONS = ["normal", "urgent", "emergency"];
 const PRIORITIES = ["critical", "high", "medium", "low"];
 const STATUSES = ["open", "assigned", "in-progress", "resolved", "closed"];
 const NOTICE_CATEGORIES = ["noise", "shared-space", "cleanliness", "other"];
+const LOCATION_TYPES = ["room", "shared"];
 const NOTICE_AREAS = ["corridor", "kitchen", "bathroom", "laundry", "common-room", "stairwell", "outdoor", "other"];
 const NOTICE_STATUSES = ["submitted", "under-review", "resolved", "closed"];
 const MODERATION_ACTIONS = ["status", "publish", "unpublish", "remove", "response", "identity-viewed"];
@@ -119,6 +120,10 @@ const TABLES = [
       date("entryAuthorisedAt"),
       date("workStartedAt"),
       text("entryMode", 20),
+      // Module B5: where the fault is. Reports from before B5 have neither
+      // value and are about the resident's room.
+      choice("locationType", LOCATION_TYPES),
+      choice("area", NOTICE_AREAS),
       text("assignedTo", 80),
       text("assignedToId", 36),
       text("resolutionNote", 1000),

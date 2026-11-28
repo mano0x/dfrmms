@@ -9,6 +9,7 @@ import {
 } from "@/lib/reports";
 import { TargetBadge, Timeline } from "@/components/Timeline";
 import { VisitStart } from "@/components/VisitStart";
+import { placeShort } from "@/lib/fault-location";
 import {
   Alert, AppShell, EmptyState, Icon, LoadingScreen, PageHeader, PriorityBadge, STATUSES, STATUS_BAR,
   Spinner, StatGrid, StatusBadge, Tabs, Tag, btn, categoryLabel, cx, inputCls, selectCls, selectInlineCls, statusLabel,
@@ -178,7 +179,7 @@ export default function TechnicianDashboard() {
                     </div>
                     <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
                       <Icon.Pin width={14} height={14} />
-                      {r.dormitory} · Room {r.roomNumber}
+                      {r.dormitory} · {placeShort(r)}
                       <span aria-hidden>·</span>
                       {r.studentName}
                     </p>
