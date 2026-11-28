@@ -1,4 +1,5 @@
 "use client";
+import { message } from "@/lib/messages/en";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
@@ -141,12 +142,8 @@ export default function TechnicianDashboard() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title={activeTab === "assigned" ? "No assignments yet" : "No reports found"}
-          body={
-            activeTab === "assigned"
-              ? "Reports appear here once an administrator assigns them to you."
-              : "Try a different status filter."
-          }
+          title={message(activeTab === "assigned" && filterStatus === "all" ? "empty.tech.assigned.title" : "empty.tech.filter.title")}
+          body={message(activeTab === "assigned" && filterStatus === "all" ? "empty.tech.assigned.body" : "empty.tech.filter.body")}
         />
       ) : (
         <ul className="space-y-3">
@@ -224,7 +221,7 @@ export default function TechnicianDashboard() {
                       )}
                       <div>
                         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">History</p>
-                        <Timeline reportId={r.id} refreshKey={historyVersion} />
+                        <Timeline reportId={r.id} refreshKey={historyVersion} reader="technician" />
                       </div>
                     </div>
 

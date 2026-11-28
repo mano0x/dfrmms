@@ -148,7 +148,7 @@ export function notificationsForChanges(
       tell(resident, { type: "fault-entry", title: "A technician entered your room on an emergency authorisation", body: `For ${quoted(after.title)}. Open the report to read the reason.`, link: PAGE.resident });
     }
     if (change.type === "entry-authorised") {
-      tell(resident, { type: "fault-entry", title: "An administrator authorised emergency entry to your room", body: `For ${quoted(after.title)}. Open the report to read the reason.`, link: PAGE.resident });
+      tell(resident, { type: "fault-entry", title: "The dormitory office authorised emergency entry to your room", body: `For ${quoted(after.title)}. Open the report to read the reason.`, link: PAGE.resident });
       tell(technician, { type: "fault-entry", title: "Emergency entry was authorised for a report assigned to you", body: `${quoted(after.title)} in ${place(after)}. Open the report to read the reason.`, link: PAGE.technician });
     }
     if (change.type === "no-access") {

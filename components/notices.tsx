@@ -44,7 +44,7 @@ export function NoticeCard({ notice, footer }: { notice: Notice; footer?: ReactN
       <p className="mt-1.5 whitespace-pre-wrap text-sm text-ink-2">{notice.description}</p>
       {notice.adminResponse && (
         <div className="mt-4 rounded-lg border border-line bg-surface-2 px-3.5 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Response from the administration</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Response from the dormitory office</p>
           <p className="mt-1 whitespace-pre-wrap text-sm text-ink">{notice.adminResponse}</p>
         </div>
       )}

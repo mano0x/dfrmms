@@ -178,7 +178,7 @@ export default function LoginPage({
 
           <p className="mt-8 flex items-center gap-2 text-xs text-muted">
             <Icon.Shield width={14} height={14} />
-            Accounts are created by your dormitory administrator.
+            Accounts are created by the dormitory office.
           </p>
         </div>
       </main>

@@ -122,7 +122,7 @@ describe("who is told about a visit", () => {
   it("FR-V: an emergency authorisation tells the resident and the technician, without the reason", () => {
     const out = notificationsForChanges([{ type: "entry-authorised" }], assigned, assigned, "a1");
     expect(who(out)).toEqual(["s1", "t1"]);
-    expect(to(out, "s1")?.title).toBe("An administrator authorised emergency entry to your room");
+    expect(to(out, "s1")?.title).toBe("The dormitory office authorised emergency entry to your room");
     expect(to(out, "t1")?.link).toBe("/technician");
     for (const secret of SECRETS) expect(JSON.stringify(out)).not.toContain(secret);
   });

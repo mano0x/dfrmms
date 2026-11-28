@@ -387,7 +387,7 @@ export async function createReport(actor: Actor, body: unknown, request?: Reques
   // Who and where come from the server's own records, never from the request.
   // A resident without a room today reads their earlier reports but submits none.
   const [profile, residence] = await Promise.all([getProfile(actor.id), residenceFor(actor.id)]);
-  if (!residence) throw new HttpError(403, "You have no room in a dormitory at the moment, so a report cannot be submitted. Contact an administrator.");
+  if (!residence) throw new HttpError(403, "You have no room in a dormitory at the moment, so a report cannot be submitted. Contact the dormitory office.");
 
   // Counting and writing happen under a lock, so two reports sent at the same moment cannot both pass the limit.
   return oneAtATime("report", actor.id, async () => {

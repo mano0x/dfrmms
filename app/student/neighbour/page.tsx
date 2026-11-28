@@ -1,4 +1,5 @@
 "use client";
+import { message } from "@/lib/messages/en";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
@@ -95,7 +96,7 @@ export default function StudentNeighbourPage() {
     >
       <PageHeader
         title="Neighbour notices"
-        subtitle="Raise a problem in a shared area with the dormitory administration, without your neighbours learning who raised it."
+        subtitle="Raise a problem in a shared area with the dormitory office, without your neighbours learning who raised it."
       />
 
       {loadError && <div className="mb-6"><Alert tone="error">{loadError}</Alert></div>}
@@ -116,7 +117,7 @@ export default function StudentNeighbourPage() {
         <div className="ui-fade-up grid gap-6 lg:grid-cols-[1fr_320px]">
           <Card className="p-5 sm:p-6">
             {!dormitory ? (
-              <Alert tone="info">You have no room in a dormitory at the moment, so a notice cannot be sent. Please contact an administrator.</Alert>
+              <Alert tone="info">You have no room in a dormitory at the moment, so a notice cannot be sent. Please contact the dormitory office.</Alert>
             ) : (
               <form
                 className="space-y-5"
@@ -165,7 +166,7 @@ export default function StudentNeighbourPage() {
                 </Field>
 
                 {formError && <Alert tone="error">{formError}</Alert>}
-                {sent && <Alert tone="success">Your notice was sent to the administration. You can follow it under “My notices”.</Alert>}
+                {sent && <Alert tone="success">Your notice was sent to the dormitory office. You can follow it under “My notices”.</Alert>}
 
                 <button type="submit" disabled={sending} className={btn.primary}>
                   {sending ? (<><Spinner /> Sending…</>) : "Send notice"}
@@ -178,10 +179,10 @@ export default function StudentNeighbourPage() {
             <h2 className="text-sm font-semibold text-ink">How your identity is handled</h2>
             <ul className="mt-3 space-y-2.5 text-sm text-ink-2">
               <li>Other residents never see who sent a notice.</li>
-              <li>An administrator reads every notice before deciding whether to show it to residents of {dormitory || "your dormitory"}.</li>
+              <li>The dormitory office reads every notice before deciding whether to show it to residents of {dormitory || "your dormitory"}.</li>
               <li>
-                Notices are <strong className="font-semibold text-ink">confidential, not anonymous</strong>: the system keeps a record of the sender. An
-                administrator can look it up only by giving a reason, and each lookup is logged.
+                Notices are <strong className="font-semibold text-ink">confidential, not anonymous</strong>: the system keeps a record of the sender. The
+                dormitory office can look it up only by giving a reason, and each lookup is logged.
               </li>
               <li>You can send up to {NOTICE_LIMIT} notices in 24 hours.</li>
               <li>For broken equipment or damage, use a fault report instead.</li>
@@ -193,7 +194,7 @@ export default function StudentNeighbourPage() {
       {tab === "mine" && (
         <div className="ui-fade-up space-y-4">
           {mine.length === 0 ? (
-            <EmptyState title="No notices yet" body="Notices you send appear here with their current status." />
+            <EmptyState title={message("empty.neighbour.mine.title")} body={message("empty.neighbour.mine.body")} />
           ) : (
             mine.map((n) => (
               <NoticeCard
@@ -202,10 +203,10 @@ export default function StudentNeighbourPage() {
                 footer={
                   <p className="mt-4 border-t border-line pt-3 text-xs text-muted">
                     {n.removed
-                      ? `Removed by an administrator${n.removedReason ? `: ${n.removedReason}` : "."}`
+                      ? `Removed by the dormitory office${n.removedReason ? `: ${n.removedReason}` : "."}`
                       : n.published
                         ? `Shown to residents of ${n.dormitory}, without your name.`
-                        : "Visible only to you and the administration."}
+                        : "Visible only to you and the dormitory office."}
                   </p>
                 }
               />
@@ -217,7 +218,7 @@ export default function StudentNeighbourPage() {
       {tab === "board" && (
         <div className="ui-fade-up space-y-4">
           {board.length === 0 ? (
-            <EmptyState title="Nothing on the board" body={`Notices that the administration publishes for ${dormitory || "your dormitory"} appear here.`} />
+            <EmptyState title={message("empty.neighbour.board.title")} body={message("empty.neighbour.board.body", { dormitory: dormitory || "your dormitory" })} />
           ) : (
             board.map((n) => <NoticeCard key={n.id} notice={n} />)
           )}

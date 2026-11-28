@@ -1,4 +1,5 @@
 "use client";
+import { message } from "@/lib/messages/en";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
@@ -87,9 +88,9 @@ export default function StudentFreePage() {
   };
 
   const report = (item: Item) => {
-    const reason = window.prompt("Why should an administrator look at this item? (at least 10 characters)");
+    const reason = window.prompt("Why should the dormitory office look at this item? (at least 10 characters)");
     if (reason === null) return;
-    run(item, () => reportItem(item.id, reason), "Thank you. An administrator will look at the item.");
+    run(item, () => reportItem(item.id, reason), "Thank you. The dormitory office will look at the item.");
   };
 
   const resetForm = () => {
@@ -204,7 +205,7 @@ export default function StudentFreePage() {
             </span>
           </div>
           {offers.length === 0 ? (
-            <EmptyState title="Nothing on offer right now" body="Items that other residents of your dormitory give away appear here." />
+            <EmptyState title={message("empty.free.board.title")} body={message("empty.free.board.body")} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {offers.map((item) => (
@@ -237,7 +238,7 @@ export default function StudentFreePage() {
         <div className="ui-fade-up grid gap-6 lg:grid-cols-[1fr_320px]">
           <Card className="p-5 sm:p-6">
             {!dormitory ? (
-              <Alert tone="info">You have no room in a dormitory at the moment, so an item cannot be published. Please contact an administrator.</Alert>
+              <Alert tone="info">You have no room in a dormitory at the moment, so an item cannot be published. Please contact the dormitory office.</Alert>
             ) : (
               <form
                 className="space-y-5"
@@ -332,7 +333,7 @@ export default function StudentFreePage() {
               <li>Residents of {dormitory || "your dormitory"} see the item with your name. The collection place is shown only to the resident who reserves it.</li>
               <li>The first resident to reserve the item gets {DEFAULT_RESERVATION_HOURS} hours to collect it. After that it becomes available again.</li>
               <li>When the item has been handed over, mark it as collected under “My items”.</li>
-              <li>An administrator can remove items that break the dormitory rules.</li>
+              <li>The dormitory office can remove items that break the dormitory rules.</li>
             </ul>
           </Card>
         </div>
@@ -341,7 +342,7 @@ export default function StudentFreePage() {
       {tab === "mine" && (
         <div className="ui-fade-up">
           {mine.length === 0 ? (
-            <EmptyState title="You have not offered anything yet" body="Items you give away appear here." />
+            <EmptyState title={message("empty.free.mine.title")} body={message("empty.free.mine.body")} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {mine.map((item) => (
@@ -351,7 +352,7 @@ export default function StudentFreePage() {
                     {item.status === "reserved" && `Reserved by ${item.reservedByName ?? "a resident"}.`}
                     {item.status === "collected" && `Collected by ${item.reservedByName ?? "a resident"}${item.collectedAt ? ` on ${formatDateTime(item.collectedAt)}` : ""}.`}
                     {item.status === "expired" && "The offer has ended. Edit the item to offer it again."}
-                    {item.status === "removed" && (item.removedBy === "admin" ? `Removed by an administrator${item.removedReason ? `: ${item.removedReason}` : "."}` : "You withdrew this item.")}
+                    {item.status === "removed" && (item.removedBy === "admin" ? `Removed by the dormitory office${item.removedReason ? `: ${item.removedReason}` : "."}` : "You withdrew this item.")}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2 empty:hidden">
                     {item.status === "reserved" && (
@@ -400,7 +401,7 @@ export default function StudentFreePage() {
       {tab === "reserved" && (
         <div className="ui-fade-up">
           {reservedByMe.length === 0 ? (
-            <EmptyState title="No reservations" body="Items you reserve appear here with where and when to collect them." />
+            <EmptyState title={message("empty.free.reservations.title")} body={message("empty.free.reservations.body")} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {reservedByMe.map((item) => (

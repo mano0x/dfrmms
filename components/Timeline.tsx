@@ -2,18 +2,19 @@
 import { useEffect, useState } from "react";
 import { fetchTimeline, formatDateTime, type LogEntry } from "@/lib/reports";
 import { isOverdue, targetLabel } from "@/lib/maintenance";
-import { Icon, Spinner, cx, statusLabel } from "@/components/ui";
+import { Icon, Spinner, cx } from "@/components/ui";
+import { roleWord, statusWord, type Reader } from "@/lib/plain-words";
 
-const ROLE_NAME: Record<string, string> = { student: "Resident", technician: "Technician", admin: "Administrator" };
 
-function describe(e: LogEntry): { text: string; detail?: string } {
+/** One history entry in the reader's words: a resident reads plain status words. */
+function describe(e: LogEntry, reader: Reader): { text: string; detail?: string } {
   switch (e.type) {
     case "created":
       return { text: "Report submitted" };
     case "edited":
       return { text: "Report details edited" };
     case "status":
-      return { text: `Status changed from ${statusLabel(e.from ?? undefined)} to ${statusLabel(e.to ?? undefined)}` };
+      return { text: `Status changed from "${statusWord(e.from, reader)}" to "${statusWord(e.to, reader)}"` };
     case "assignment":
       return { text: e.to ? `Assigned to ${e.to}` : `Unassigned${e.from ? ` from ${e.from}` : ""}` };
     case "confirmed":
@@ -39,7 +40,7 @@ function describe(e: LogEntry): { text: string; detail?: string } {
 }
 
 /** History of one report: who did what and when, oldest first. */
-export function Timeline({ reportId, refreshKey = 0 }: { reportId: string; refreshKey?: number }) {
+export function Timeline({ reportId, refreshKey = 0, reader }: { reportId: string; refreshKey?: number; reader: Reader }) {
   const [entries, setEntries] = useState<LogEntry[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -73,9 +74,9 @@ export function Timeline({ reportId, refreshKey = 0 }: { reportId: string; refre
   return (
     <ol className="space-y-4">
       {entries.map((e, i) => {
-        const { text, detail } = describe(e);
+        const { text, detail } = describe(e, reader);
         const who = e.actorName;
-        const role = e.actorRole ? ROLE_NAME[e.actorRole] : undefined;
+        const role = e.actorRole ? roleWord(e.actorRole, reader) : undefined;
         return (
           <li key={e.id} className="relative flex gap-3">
             {i < entries.length - 1 && <span aria-hidden className="absolute left-[5px] top-4 h-full w-px bg-line" />}

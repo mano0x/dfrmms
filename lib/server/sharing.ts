@@ -298,7 +298,7 @@ export async function createListing(actor: Actor, body: unknown): Promise<Listin
   // Where the owner lives comes from their allocation, never from the request.
   const residence = await residenceFor(actor.id);
   const viewer: Viewer = { ...actor, dormitoryId: residence?.dormitoryId ?? null };
-  if (!residence || !canPublishItem(viewer)) throw new HttpError(403, "You have no room in a dormitory at the moment, so an item cannot be published. Contact an administrator.");
+  if (!residence || !canPublishItem(viewer)) throw new HttpError(403, "You have no room in a dormitory at the moment, so an item cannot be published. Contact the dormitory office.");
   const { photoIds, data } = parseListing(body);
 
   // Counting and writing happen under a lock, so two requests sent at the same moment cannot both pass the limit.
@@ -473,7 +473,7 @@ export async function removeListing(actor: Actor, listingId: string, reasonInput
   const reason = reasonSchema.safeParse(reasonInput);
   if (!reason.success) throw new HttpError(400, firstError(reason));
   await takeDown(listing, "admin", reason.data, [
-    { userId: listing.ownerId, message: { type: "free-removed", title: "Your item was removed by an administrator", body: `${quoted(listing)}: ${reason.data}` } },
+    { userId: listing.ownerId, message: { type: "free-removed", title: "Your item was removed by the dormitory office", body: `${quoted(listing)}: ${reason.data}` } },
   ]);
   await resolveReports(listing.id);
   return { ...(await shaped(actor, await readListing(listing.id))), openReports: [] };

@@ -119,7 +119,7 @@ describe("looking at who sent a notice", () => {
     const res = await call("/api/security-events/mine", { cookie: student1 });
     expect(res.status).toBe(200);
     const mine = (res.data.events as { type: string; by: string; detail: string }[]).find((e) => e.detail?.includes("EVT-TEST"));
-    expect(mine).toMatchObject({ type: "identity-viewed", by: "An administrator", detail: `Reason given: ${REASON}` });
+    expect(mine).toMatchObject({ type: "identity-viewed", by: "The dormitory office", detail: `Reason given: ${REASON}` });
     const text = JSON.stringify(res.data);
     for (const hidden of ["test-admin", "Test Administrator", "actorId", "addressHash", noticeId]) expect(text, hidden).not.toContain(hidden);
   });

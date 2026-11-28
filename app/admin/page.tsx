@@ -1,4 +1,5 @@
 "use client";
+import { message } from "@/lib/messages/en";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
@@ -321,7 +322,8 @@ export default function AdminDashboard() {
                   {filtered.length === 0 && (
                     <tr>
                       <td colSpan={6} className="px-4 py-14 text-center text-muted">
-                        No reports match your filters.
+                        <span className="block font-medium text-ink">{message("empty.admin.reports.title")}</span>
+                        <span className="mt-1 block">{message("empty.admin.reports.body")}</span>
                       </td>
                     </tr>
                   )}
@@ -637,7 +639,7 @@ export default function AdminDashboard() {
 
                 <div>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">History</p>
-                  <Timeline reportId={selected.id} refreshKey={historyVersion} />
+                  <Timeline reportId={selected.id} refreshKey={historyVersion} reader="admin" />
                 </div>
               </div>
             </div>

@@ -1,6 +1,8 @@
 "use client";
 import type { ReactNode, SVGProps } from "react";
+import Link from "next/link";
 import { SectionNav } from "./SectionNav";
+import { statusWord } from "@/lib/plain-words";
 
 /* ------------------------------------------------------------------ */
 /* Shared option lists and labels                                      */
@@ -209,11 +211,12 @@ const PRIORITY_TONE: Record<string, string> = {
 
 const pill = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset";
 
-export function StatusBadge({ status }: { status: string }) {
+/** The status of a report. With `reader="student"` the resident's plain words are shown (lib/plain-words.ts). */
+export function StatusBadge({ status, reader = "admin" }: { status: string; reader?: "student" | "technician" | "admin" }) {
   return (
     <span className={cx(pill, STATUS_TONE[status] ?? STATUS_TONE.closed)}>
       <StatusMarker status={status} />
-      {statusLabel(status)}
+      {statusWord(status, reader)}
     </span>
   );
 }
@@ -320,6 +323,10 @@ export function AppShell({
             >
               {initials}
             </span>
+            <Link href="/help" className={btn.ghost} aria-label="Help" title="Help">
+              <span aria-hidden className="grid h-5 w-5 place-items-center rounded-full border border-current text-xs font-bold">?</span>
+              <span className="hidden md:inline">Help</span>
+            </Link>
             <button onClick={onSignOut} className={btn.ghost} aria-label="Sign out">
               <Icon.Logout />
               <span className="hidden md:inline">Sign out</span>

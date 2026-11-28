@@ -71,7 +71,7 @@ describe("security events: who reads what", () => {
   });
   it("SEC-12: that person learns the time and the reason, not which administrator or from where", () => {
     const view = eventForSubject(stored);
-    expect(view).toEqual({ id: "e1", type: "identity-viewed", by: "An administrator", detail: stored.detail, createdAt: stored.createdAt });
+    expect(view).toEqual({ id: "e1", type: "identity-viewed", by: "The dormitory office", detail: stored.detail, createdAt: stored.createdAt });
     const text = JSON.stringify(view);
     for (const hidden of ["a1", "Asta", stored.addressHash!, "n1"]) expect(text, hidden).not.toContain(hidden);
   });

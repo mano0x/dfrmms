@@ -79,7 +79,7 @@ export function RepairAnswer({ report, onAnswered }: { report: Report; onAnswere
             )}
           </div>
           {!canSendBack && (
-            <p className="text-xs text-muted">This report was already sent back {MAX_NOT_FIXED} times. If it is still not fixed, please contact an administrator.</p>
+            <p className="text-xs text-muted">This report was already sent back {MAX_NOT_FIXED} times. If it is still not fixed, please contact the dormitory office.</p>
           )}
         </div>
       ) : (

@@ -68,7 +68,7 @@ export default function NotificationsPage() {
       {error && <div className="mb-6"><Alert tone="error">{error}</Alert></div>}
 
       {items.length === 0 ? (
-        <EmptyState title="No notifications" body="Messages about your notices appear here." />
+        <EmptyState title={message("empty.notifications.title")} body={message("empty.notifications.body")} />
       ) : (
         <Card className="divide-y divide-line">
           {items.map((n) => (
@@ -102,7 +102,7 @@ export default function NotificationsPage() {
       {ownEvents && (
         <section aria-labelledby="own-events" className="mt-10">
           <h2 id="own-events" className="text-base font-semibold text-ink">{message("events.own.title")}</h2>
-          <p className="mt-1 text-sm text-muted">An administrator must give a reason before looking at certain data about you. Each time is listed here.</p>
+          <p className="mt-1 text-sm text-muted">The dormitory office must give a reason before looking at certain data about you. Each time is listed here.</p>
           {ownEvents.length === 0 ? (
             <p className="mt-4 text-sm text-ink-2">{message("events.own.empty")}</p>
           ) : (

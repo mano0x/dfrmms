@@ -1,4 +1,5 @@
 "use client";
+import { message } from "@/lib/messages/en";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
@@ -150,7 +151,7 @@ export default function AdminNeighbourPage() {
       </div>
 
       {shown.length === 0 ? (
-        <EmptyState title="No notices here" body={filter === "open" ? "Nothing is waiting for you." : "No notices match this filter."} />
+        <EmptyState title={message("empty.admin.neighbour.title")} body={message(filter === "open" ? "empty.admin.neighbour.open" : "empty.admin.neighbour.filter")} />
       ) : (
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">

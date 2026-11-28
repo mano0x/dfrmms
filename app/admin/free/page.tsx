@@ -1,4 +1,5 @@
 "use client";
+import { message } from "@/lib/messages/en";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
@@ -116,7 +117,7 @@ export default function AdminFreePage() {
       </div>
 
       {shown.length === 0 ? (
-        <EmptyState title="No items here" body={filter === "all" ? "Residents have not published any items yet." : "No items match this filter."} />
+        <EmptyState title={message("empty.admin.free.title")} body={message(filter === "all" ? "empty.admin.free.body" : "empty.admin.free.filter")} />
       ) : (
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-left text-sm">

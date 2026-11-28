@@ -164,7 +164,7 @@ export const isVisibleToSubject = (event: Pick<StoredSecurityEvent, "type" | "su
 export type OwnSecurityEventView = { id: string; type: string; by: string; detail: string | null; createdAt: string };
 
 export function eventForSubject(event: StoredSecurityEvent): OwnSecurityEventView {
-  return { id: event.id, type: event.type, by: "An administrator", detail: event.detail, createdAt: event.createdAt };
+  return { id: event.id, type: event.type, by: "The dormitory office", detail: event.detail, createdAt: event.createdAt };
 }
 
 /* ------------------------------------------------------------------ */

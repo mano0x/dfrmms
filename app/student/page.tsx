@@ -14,6 +14,8 @@ import { RepairAnswer } from "@/components/RepairAnswer";
 import { EntryChoice, VisitCode } from "@/components/VisitCode";
 import { LocationChoice } from "@/components/LocationChoice";
 import { placeLabel, type FaultArea, type LocationType } from "@/lib/fault-location";
+import { statusWord, whatHappensNext } from "@/lib/plain-words";
+import { message } from "@/lib/messages/en";
 import {
   Alert, AppShell, CATEGORIES, Card, Detail, EmptyState, Field, FilePicker, Icon,
   LoadingScreen, PageHeader, PriorityBadge, STATUSES, STATUS_BAR, Spinner, StatGrid,
@@ -356,7 +358,7 @@ export default function StudentDashboard() {
       {activeTab === "history" && (
         <div className="ui-fade-up">
           <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter by status">
-            {[{ value: "all", label: "All" }, ...STATUSES].map((s) => {
+            {[{ value: "all", label: "All" }, ...STATUSES.map((s) => ({ value: s.value, label: statusWord(s.value, "student") }))].map((s) => {
               const on = filterStatus === s.value;
               const n = countByStatus[s.value] ?? 0;
               return (
@@ -378,8 +380,8 @@ export default function StudentDashboard() {
 
           {filtered.length === 0 ? (
             <EmptyState
-              title={stats.total === 0 ? "No reports yet" : "Nothing matches this filter"}
-              body={stats.total === 0 ? "When something in your room breaks, report it here and follow its progress." : "Try a different status."}
+              title={message(stats.total === 0 ? "empty.reports.mine.title" : "empty.reports.filter.title")}
+              body={message(stats.total === 0 ? "empty.reports.mine.body" : "empty.reports.filter.body")}
               action={
                 stats.total === 0 && (
                   <button onClick={() => setActiveTab("submit")} className={btn.primary}>
@@ -405,7 +407,7 @@ export default function StudentDashboard() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold text-ink group-hover:text-brand">{r.title}</h3>
-                        <StatusBadge status={r.status} />
+                        <StatusBadge status={r.status} reader="student" />
                       </div>
                       <p className="mt-1 line-clamp-2 text-sm text-muted">{r.description}</p>
                       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -531,7 +533,7 @@ export default function StudentDashboard() {
               ) : (
                 <>
                   <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={selectedReport.status} />
+                    <StatusBadge status={selectedReport.status} reader="student" />
                     <PriorityBadge priority={selectedReport.priority} />
                     <TargetBadge createdAt={toDate(selectedReport.createdAt)} priority={selectedReport.priority} status={selectedReport.status} />
                     <Tag>{categoryLabel(selectedReport.category)}</Tag>
@@ -565,7 +567,10 @@ export default function StudentDashboard() {
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted">Maintenance progress</p>
                     </div>
                     <p className="mt-2 text-sm text-ink">
-                      Current status: <span className="font-medium">{STATUSES.find((s) => s.value === selectedReport.status)?.label ?? selectedReport.status}</span>
+                      Current status: <span className="font-medium">{statusWord(selectedReport.status, "student")}</span>
+                    </p>
+                    <p className="mt-1.5 text-sm text-ink-2">
+                      <span className="font-medium text-ink">What happens next:</span> {whatHappensNext(selectedReport)}
                     </p>
                     <p className="mt-1.5 text-sm text-muted">
                       {selectedReport.resolutionNote || "No technician notes have been added yet."}
@@ -590,7 +595,7 @@ export default function StudentDashboard() {
 
                   <div className="mt-6">
                     <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">History</p>
-                    <Timeline reportId={selectedReport.id} refreshKey={new Date(selectedReport.updatedAt).getTime()} />
+                    <Timeline reportId={selectedReport.id} refreshKey={new Date(selectedReport.updatedAt).getTime()} reader="student" />
                   </div>
 
                   {selectedReport.photoFileId && (

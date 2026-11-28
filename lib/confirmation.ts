@@ -86,7 +86,7 @@ export function notFixedProblem(actor: Actor, report: Repair, now: Date = new Da
   if (!isOwner(actor, report)) return "Only the resident who reported the fault can say that it is not fixed.";
   if (report.autoClosed || autoCloseDue(report, now)) return `This report was closed automatically ${AUTO_CLOSE_DAYS} days after it was resolved. Please submit a new report.`;
   if (report.status !== "resolved") return "Only a report that was marked as resolved can be sent back.";
-  if (report.notFixedCount >= MAX_NOT_FIXED) return `This report was already sent back ${MAX_NOT_FIXED} times. Please contact an administrator.`;
+  if (report.notFixedCount >= MAX_NOT_FIXED) return `This report was already sent back ${MAX_NOT_FIXED} times. Please contact the dormitory office.`;
   return null;
 }
 

@@ -366,3 +366,32 @@ the declaration as well.
 - Decide whether duplicates of shared-area reports are acceptable.
 - The API tests of this module had not been run when this entry was
   written. Do not rely on them until the build plan records a run.
+
+## 2026-11-28: U0, plain words
+
+**Module:** U0 (FR-UX-20, 23, 24, 25 of the owner's add-ons).
+
+**What the AI generated or changed**
+
+- Wrote `lib/plain-words.ts` with 27 unit tests, about 120 text keys in
+  `lib/messages/en.ts`, and the page `/help`.
+- Wrote `lib/messages/lt.ts`: a Lithuanian draft of the same keys.
+- Replaced "administrator" by "dormitory office" in what residents read:
+  pages, history, notifications, refusals.
+- Changed the texts of every empty list.
+- Wrote `docs/plain-words.md`.
+
+**What the AI decided under D43 (recorded as D46)**
+
+- Which readers get which words; that a passed target is called late; that
+  Help text is SAMPLE and not yet editable on a page.
+
+**What the author must review and verify**
+
+- Every word a resident reads is a choice. Read the table in section 2 of
+  the module document and change any word you do not like.
+- The Help answers and all Lithuanian text were written by the AI. The
+  Lithuanian text has not been read by a native speaker and must not be
+  described as reviewed.
+- The API tests had not been run since this change when this entry was
+  written.

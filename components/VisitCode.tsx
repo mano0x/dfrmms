@@ -153,7 +153,7 @@ export function VisitCode({ report, onChanged }: { report: Report; onChanged: (u
         {report.entryAllowed
           ? "You allowed the technician to enter when you are not there. You are told if that happens."
           : "You did not allow entry in your absence: without you and a code, the technician records \"no access\"."}
-        {report.entryAuthorisedAt && " An administrator has authorised emergency entry; the reason is in the history below."}
+        {report.entryAuthorisedAt && " The dormitory office has authorised emergency entry; the reason is in the history below."}
       </p>
     </section>
   );

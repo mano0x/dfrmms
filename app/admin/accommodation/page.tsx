@@ -1,4 +1,5 @@
 "use client";
+import { message as words } from "@/lib/messages/en";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
@@ -305,7 +306,7 @@ export default function AdminAccommodationPage() {
               </label>
             </div>
             {shownAllocations.length === 0 ? (
-              <EmptyState title="No allocations" body="No resident has a room yet." />
+              <EmptyState title={words("empty.accommodation.allocations.title")} body={words("empty.accommodation.allocations.body")} />
             ) : (
               <Card className="overflow-x-auto">
                 <table className={`${tableCls} min-w-[620px]`}>
@@ -418,7 +419,7 @@ export default function AdminAccommodationPage() {
               <span className="text-sm text-muted">{shownRooms.length} of {rooms.length}</span>
             </div>
             {shownRooms.length === 0 ? (
-              <EmptyState title="No rooms here" body={rooms.length ? "No rooms match this filter." : "Add a dormitory first, then its rooms."} />
+              <EmptyState title={words("empty.accommodation.rooms.title")} body={words(rooms.length ? "empty.accommodation.rooms.filter" : "empty.accommodation.rooms.body")} />
             ) : (
               <Card className="overflow-x-auto">
                 <table className={`${tableCls} min-w-[620px]`}>
@@ -491,7 +492,7 @@ export default function AdminAccommodationPage() {
 
           <div className="min-w-0 lg:col-span-2">
             {dormitories.length === 0 ? (
-              <EmptyState title="No dormitories yet" body="Add the first dormitory with the form." />
+              <EmptyState title={words("empty.accommodation.dormitories.title")} body={words("empty.accommodation.dormitories.body")} />
             ) : (
               <Card className="overflow-x-auto">
                 <table className={`${tableCls} min-w-[520px]`}>
@@ -545,7 +546,7 @@ export default function AdminAccommodationPage() {
 
           <div className="min-w-0 lg:col-span-2">
             {roomTypes.length === 0 ? (
-              <EmptyState title="No room types yet" body="Add the first room type with the form." />
+              <EmptyState title={words("empty.accommodation.roomTypes.title")} body={words("empty.accommodation.roomTypes.body")} />
             ) : (
               <Card className="overflow-x-auto">
                 <table className={`${tableCls} min-w-[420px]`}>

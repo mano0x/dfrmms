@@ -152,7 +152,7 @@ export async function createNotice(actor: Actor, body: unknown): Promise<NoticeV
   // Where the sender lives comes from their allocation, never from the request.
   const residence = await residenceFor(actor.id);
   const viewer: Viewer = { ...actor, dormitoryId: residence?.dormitoryId ?? null };
-  if (!residence || !canSubmitNotice(viewer)) throw new HttpError(403, "You have no room in a dormitory at the moment, so a notice cannot be sent. Contact an administrator.");
+  if (!residence || !canSubmitNotice(viewer)) throw new HttpError(403, "You have no room in a dormitory at the moment, so a notice cannot be sent. Contact the dormitory office.");
 
   const parsed = noticeInputSchema.safeParse(body);
   if (!parsed.success) throw new HttpError(400, firstError(parsed));
@@ -290,14 +290,14 @@ export async function moderateNotice(actor: Actor, noticeId: string, body: Recor
       const reason = moderationReasonSchema.safeParse(body.reason);
       if (!reason.success) throw new HttpError(400, firstError(reason));
       return change(notice, actor, { removed: true, published: false, removedReason: reason.data }, { action: "remove", reason: reason.data }, {
-        type: "neighbour-removed", title: "Your notice was removed by an administrator", body: `${about}: ${reason.data}`,
+        type: "neighbour-removed", title: "Your notice was removed by the dormitory office", body: `${about}: ${reason.data}`,
       });
     }
     case "respond": {
       const response = adminResponseSchema.safeParse(body.response);
       if (!response.success) throw new HttpError(400, firstError(response));
       return change(notice, actor, { adminResponse: response.data }, { action: "response", to: response.data.slice(0, 80) }, {
-        type: "neighbour-response", title: "An administrator responded to your notice", body: about,
+        type: "neighbour-response", title: "The dormitory office responded to your notice", body: about,
       });
     }
     default:
