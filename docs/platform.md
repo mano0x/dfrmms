@@ -267,6 +267,12 @@ The full API run after this change passed completely (322 of 322 on
 2026-11-28); no lookup failed during it, so it shows that nothing was
 broken, not that the earlier answers are cured.
 
+On the same day a later full run again had one signed-in test account
+answered "not signed in", and the server log held no line from this
+check. So that answer did not come from a failed lookup: this correction
+is right in itself but is **not** the explanation of those answers. Their
+cause is open.
+
 Not tested: the 503 through the running application. It needs the identity
 service to fail, which the tests cannot cause; the rule is unit-tested with
 a lookup that fails on purpose. Whether this was the cause of the two "not

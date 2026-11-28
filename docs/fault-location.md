@@ -5,9 +5,10 @@ Everything under a heading exists in the code. Section 6 says exactly which
 tests were run and what was not tested.
 
 Status on 2026-11-28: implemented; unit tests, lint, type-check and build
-pass; the two columns of section 4 were created on 2026-11-28. **Not yet
-done:** the API tests are written and have not been run; the pages have not
-been looked at in a browser. Not
+pass; the two columns of section 4 were created on 2026-11-28. All 337 API
+tests of the project have passed on this code on that day, in two runs and
+not in a single one (section 6). **Not yet done:** the pages have not been
+looked at in a browser. Not
 merged into `main` and not deployed.
 
 ## 1. Purpose
@@ -94,8 +95,12 @@ that the areas are the notices' list; that a shared area must be named;
 what is stored; how old and unknown values are read; how the place is
 named.
 
-API tests: `tests/api/fault-location.test.ts` (15 tests) is written and
-**has not been run**. It covers: refusal without a session, from another
+API tests: `tests/api/fault-location.test.ts` (15 tests; 15 of 15 on
+2026-11-28 against a local development server and the Appwrite project).
+The full run on that day was 335 of 337; the two failures were in
+`auth.test.ts` and `accommodation.test.ts`, in code this module does not
+touch, and both files passed on their own afterwards (62 of 62). The build
+plan describes them. The new file covers: refusal without a session, from another
 site and for staff; invalid locations and areas; a shared-area report with
 the dormitory and the entry permission sent along and ignored; a resident
 of another dormitory; the default; who sees the report; the wording of the

@@ -27,7 +27,7 @@ again against the code before work begins.
 | FR-05 | User changes own password; a starting password must be changed at first sign-in | To build | B7 | |
 | FR-06 | Second factor for administrator and technician accounts | To build | F2 | |
 | FR-07 | Resident submits a fault: title, category, classification, description, optional photo | Built | | |
-| FR-08 | Resident chooses the location: own room or a shared area | Built; API tests not yet run | B5 | `docs/fault-location.md` |
+| FR-08 | Resident chooses the location: own room or a shared area | Built and API-tested; pages not yet seen in a browser | B5 | `docs/fault-location.md` |
 | FR-09 | Resident edits own report while it is open, unassigned and not triaged | Built | | |
 | FR-10 | Resident lists own reports with status, history and target time | Built | | |
 | FR-11 | Resident confirms a repair or reports it as not fixed, and rates it | Built | B2 | `docs/repair-confirmation.md`. The module's own API tests pass. |
@@ -91,6 +91,32 @@ requirements. Until then only the prefix exists.
 | FR-GU | E1 | 7 | Guests | To build |
 | FR-EV | E2 | 8 | Events | To build |
 | FR-LO | E3 | 9 | Dormitory location | To build |
+
+## Ease-of-use requirements (add-on of 2026-11-28)
+
+Sent by the owner on 2026-11-28. The proposed module and order are in
+`docs/build-plan.md` ("Add-on of 2026-11-28") and wait for the owner's
+answers. Nothing here is built.
+
+| ID | Module (proposed) | Requirement | Status |
+|----|-------------------|-------------|--------|
+| FR-UX-01 | U1 | One sign-in for everyone: e-mail and password only; the server reads the role from the account and opens the right dashboard; one message for a wrong e-mail or password | To build |
+| FR-UX-02 | U1 | The first screen speaks to the student first: "Something broken? Report it in one minute."; staff use the same sign-in box | To build |
+| FR-UX-03 | U1 | Emergency help without signing in: "Emergency? Call 112" and the dormitory's duty numbers; an administrator edits them; the page returns only these numbers and no personal data; only 112 is seeded | To build |
+| FR-UX-04 | U1, F3 | Language switch, English and Lithuanian, on every page, starting with the first screen | To build |
+| FR-UX-05 | U1 | "New here?" page without signing in: how to get a place, where the building is, what to do in the first week; SAMPLE text an administrator edits; links to the application form and the map when they exist | To build |
+| FR-UX-06 | U2 | Choose the fault by picture: no heating, no hot water, water leak, no electricity, broken lock or door, internet, pests, other; the icons are the project's own files | To build |
+| FR-UX-07 | U2 | "What to do right now" tip after the fault type is chosen; written by administrators; two or three seeded tips marked SAMPLE; the one fixed tip: if you are in danger, leave and call 112 | To build |
+| FR-UX-08 | U3 | The resident marks when they are in the room (morning, afternoon, evening, by day); the technician sees it and sets the visit time; the resident is notified; the visit code still applies | To build |
+| FR-UX-09 | U4 | First-week checklist that each dormitory can edit (SAMPLE items); the student ticks what is done; only the student sees their own ticks | To build |
+| FR-UX-10 | B6 | "Today" screen for administrators: emergencies, new reports, reports without a technician and overdue reports on top, each one click from the filtered list | To build |
+| FR-UX-11 | U5 | Announcements by an administrator for one dormitory or all, with a start and an end time; residents see them on their home page | To build |
+| FR-UX-12 | B10 | An administrator links reports as the same problem as one main report; when the main report changes every linked resident is told; residents never see each other's names | To build |
+| FR-UX-13 | B7b | An administrator adds students from a CSV file: preview of what will be created and what is wrong before anything is saved; at most 200 rows; each new student sets their own password at first sign-in; everything in the security event log | To build |
+| FR-UX-14 | B9 | Technician phone screen: today's jobs, most urgent first, big buttons; a photo before and after the repair | To build |
+| FR-UX-15 | B6 | Monthly summary an administrator can print: repair times, reports per category, rooms with repeated faults; no names | To build |
+
+
 
 ## Security requirements
 
