@@ -312,5 +312,4 @@ the declaration as well.
   evidence for SEC-08.
 - Read `removeUnattachedUploads` and `mayRemoveUpload`: this is the only
   code that deletes files. Check that a failed lookup keeps the file.
-- The API tests of this module had not been run when this entry was
-  written. Do not rely on them until the build plan records a run.
+- The API tests passed in two runs, not in one (build plan, 2026-11-28).

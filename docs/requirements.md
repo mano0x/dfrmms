@@ -31,7 +31,7 @@ again against the code before work begins.
 | FR-09 | Resident edits own report while it is open, unassigned and not triaged | Built | | |
 | FR-10 | Resident lists own reports with status, history and target time | Built | | |
 | FR-11 | Resident confirms a repair or reports it as not fixed, and rates it | Built | B2 | `docs/repair-confirmation.md`. The module's own API tests pass. |
-| FR-12 | Limits on reports and photo uploads per resident in 24 hours | Built; API tests written, not yet run | B4 | `docs/abuse-limits.md`. 10 reports (20 in all for emergencies) and 20 photos of each kind. |
+| FR-12 | Limits on reports and photo uploads per resident in 24 hours | Built and API-tested | B4 | `docs/abuse-limits.md`. 10 reports (20 in all for emergencies) and 20 photos of each kind. |
 | FR-13 | Technician sees assigned and all reports, filtered by status, with overdue marks | Built | | |
 | FR-14 | Technician changes status on assigned reports | Built | B3 changes it | The `assigned` status and the visit code change the transitions. |
 | FR-15 | Technician records resolution notes, each kept in the history | Built | | |
@@ -103,7 +103,7 @@ requirements. Until then only the prefix exists.
 | SEC-05 | Tables and buckets grant the browser nothing | Built | B4 | The last leftover, a create permission for the `student` label on the bucket `dormitory-fault-photos`, was removed on 2026-11-28 with the owner's approval (D40); both buckets were read back with no permissions. An API test checks it. |
 | SEC-06 | Requests that change data must come from this site's origin | Built | | |
 | SEC-07 | Schema validation and size limits on the server | Built for the routes that exist | every module | |
-| SEC-08 | Uploads checked by content, size-limited, private, served through an authorised route, metadata removed on the server | Built; API tests written, not yet run | B4 | Every upload is decoded and written anew on the server (`lib/server/image.ts`); unit tests show that a GPS position, a device and a name in the EXIF data are gone. |
+| SEC-08 | Uploads checked by content, size-limited, private, served through an authorised route, metadata removed on the server | Built and API-tested | B4 | Every upload is decoded and written anew on the server (`lib/server/image.ts`); unit tests show that a GPS position, a device and a name in the EXIF data are gone. |
 | SEC-09 | Security headers; a content policy without inline scripts | Partly | B8 | Headers are set; the policy allows inline scripts and styles. |
 | SEC-10 | Append-only histories written with the change | Built | | |
 | SEC-11 | Security events recorded and readable by administrators | Built | A3 | The network address is stored as a keyed hash only. |

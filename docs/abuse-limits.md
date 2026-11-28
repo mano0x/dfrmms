@@ -5,9 +5,10 @@ Everything under a heading exists in the code. Section 7 says exactly which
 tests were run and what was not tested.
 
 Status on 2026-11-28: implemented; unit tests, lint, type-check and build
-pass; the bucket permission of section 5 was removed on 2026-11-28. **Not
-yet done:** the API tests are written and have not been run; `sharp` is used
-but not yet declared in `package.json`. Not merged into `main` and not deployed.
+pass; the bucket permission of section 5 was removed and `sharp` was
+declared on 2026-11-28. All 322 API tests of the project have passed on
+this code on that day, in two runs and not in a single one (section 7). An
+upload through the report form has not been tried in a browser. Not merged into `main` and not deployed.
 
 ## 1. Purpose
 
@@ -116,9 +117,10 @@ removes nothing.
 
 **`sharp`.** Version 0.35.5 is already installed, because Next.js 16.4.6
 lists it as an optional dependency for its own image handling. This module
-imports it directly, so it should be declared in `package.json` with that
-exact version: otherwise a later version of Next.js could change or drop it
-without the project noticing. Declaring it downloads nothing new.
+imports it directly, so it is declared in `package.json` with that exact
+version (since 2026-11-28): otherwise a later version of Next.js could
+change or drop it without the project noticing. Declaring it downloaded
+nothing new.
 
 ## 7. Tests
 
@@ -130,15 +132,24 @@ name and a person's name in its EXIF data, show that the bytes contain them
 before, and that the re-encoded JPEG, WebP and PNG contain none of them;
 also orientation, scaling, a fake picture and a cut-off picture.
 
-API tests: `tests/api/abuse-limits.test.ts` (19 tests) is written and **has
-not been run**. It uploads such a picture through the route and reads the
+API tests: `tests/api/abuse-limits.test.ts` (19 tests; 19 of 19 on
+2026-11-28 against a local development server and the Appwrite project).
+It uploads such a picture through the route and reads the
 stored file back with the server key; reaches each limit by putting rows
 and files of a test account in place first; and runs the clean-up for test
 accounts' files only, with the clock moved a day ahead. Two older API test
 files (`reports`, `sharing`) used the first bytes of a PNG as "a picture";
 the server no longer accepts that, so they now send a real one-pixel PNG.
 
-Not tested: a picture near the 40-million-pixel limit; the time and memory
+The full run on 2026-11-28 was 320 of 322: twelve of the thirteen files
+passed completely. In `limits.test.ts`, one of eight simultaneous requests
+of a signed-in test resident was answered "not signed in", and the next
+test depends on it; that file alone afterwards: 8 of 8. The cause is the
+older weakness described in `docs/visit-verification.md` (a failed account
+lookup is answered as "not signed in"), not this module.
+
+Not tested: an upload through the report form in a browser; a picture near
+the 40-million-pixel limit; the time and memory
 the re-encoding needs on Vercel; photos stored before this module (see
 section 8).
 
