@@ -2,7 +2,7 @@
 
 Plan for extending DFRMMS from fault reporting into a wider dormitory portal.
 Written 2026-11-21 from the build brief and the owner's answers. **Status:
-approved by the owner on 2026-11-21. A1 is done and approved. A2 is done and was approved on 2026-11-24 (branch pushed at `a9e7147`). A3 is in progress: the two tables exist and the security event log is written (writer, routes, hooks, pages, 16 API tests). The API tests pass (193 of 193 on 2026-11-24). The limiter is done (201 of 201 API tests on 2026-11-25). The secrets are set locally and the daily job and `docs/platform.md` are written (2026-11-25). A3 is done and was approved by the owner on 2026-11-25. A4 (navigation) is done and was approved on 2026-11-25. Phase A is complete. B1 (fault notifications) is done and was approved by the owner on 2026-11-25. B2 (confirmation and rating) is written and API-tested; the answer box was checked in a browser on 2026-11-25. B2 is done and was approved by the owner on 2026-11-26. B3 (visit verification) is written (schema applied 2026-11-28); its API tests pass (2026-11-28, in two runs); its pages were checked in a browser on 2026-11-28. B3 is done and was approved by the owner on 2026-11-28, with decisions D37 and D38. B4 (abuse limits and photo hardening) is written, the bucket permission is removed, `sharp` is declared and the API tests pass (2026-11-28, in two runs); an upload through the report form was checked in a browser. B4 is done and was approved by the owner on 2026-11-28. The session check was corrected on 2026-11-28 (D41); the full API run after it was the first to pass completely in one run (322 of 322). B5 (location of a fault) is written, its two columns exist and its API tests pass (2026-11-28, in two runs); its pages have not been seen in a browser. An add-on to the brief (fifteen ease-of-use items, FR-UX) was received on 2026-11-28 and is listed in section 6; its order waits for the owner's answers. Earlier note: then the daily job, paging of the report lists and `docs/platform.md`.**
+approved by the owner on 2026-11-21. A1 is done and approved. A2 is done and was approved on 2026-11-24 (branch pushed at `a9e7147`). A3 is in progress: the two tables exist and the security event log is written (writer, routes, hooks, pages, 16 API tests). The API tests pass (193 of 193 on 2026-11-24). The limiter is done (201 of 201 API tests on 2026-11-25). The secrets are set locally and the daily job and `docs/platform.md` are written (2026-11-25). A3 is done and was approved by the owner on 2026-11-25. A4 (navigation) is done and was approved on 2026-11-25. Phase A is complete. B1 (fault notifications) is done and was approved by the owner on 2026-11-25. B2 (confirmation and rating) is written and API-tested; the answer box was checked in a browser on 2026-11-25. B2 is done and was approved by the owner on 2026-11-26. B3 (visit verification) is written (schema applied 2026-11-28); its API tests pass (2026-11-28, in two runs); its pages were checked in a browser on 2026-11-28. B3 is done and was approved by the owner on 2026-11-28, with decisions D37 and D38. B4 (abuse limits and photo hardening) is written, the bucket permission is removed, `sharp` is declared and the API tests pass (2026-11-28, in two runs); an upload through the report form was checked in a browser. B4 is done and was approved by the owner on 2026-11-28. The session check was corrected on 2026-11-28 (D41); the full API run after it was the first to pass completely in one run (322 of 322). B5 (location of a fault) is written, its two columns exist and its API tests pass (2026-11-28, in two runs); its pages have not been seen in a browser. Two add-ons to the brief (25 ease-of-use items, FR-UX-01 to FR-UX-25) were received on 2026-11-28 and are listed in section 6; their order waits for the owner's answers. Earlier note: then the daily job, paging of the report lists and `docs/platform.md`.**
 
 A new session without the earlier conversation starts here: read this file,
 then continue at the first unticked step. Rules that apply to every step are
@@ -321,6 +321,64 @@ proposal and waits for the owner's answers** to the questions asked on
 
 **B7b. Students from a file** (FR-UX-13)
 - [ ] Preview before saving; at most 200 rows; every step in the security event log.
+
+
+
+### Add-on 2 of 2026-11-28: the first day (FR-UX-16 to FR-UX-25)
+
+The owner sent a second add-on on 2026-11-28: ten items about the first
+day of a new dormitory owner and a new student. The ground rules apply.
+Every item works at 360 px, in English and Lithuanian, and has tests for
+who may see and do what. The owner wants the small ones first: empty
+screens, plain status words, "Dormitory office" and the Help page.
+
+**The order below is the assistant's proposal and waits for the owner's
+answers** to the questions asked on 2026-11-28; nothing of it is built.
+
+| ID | Item | Proposed module | Proposed place in the order | Overlaps with |
+|----|------|-----------------|-----------------------------|---------------|
+| FR-UX-16 | Invitation by e-mail link instead of a shared password; "First time here? Set your password"; the same answer whether or not the address exists; inviting an administrator asks for the inviter's password again and is logged | B7 | With B7 | B7 (account lifecycle), FR-UX-13 (students from a file), SEC-01 |
+| FR-UX-17 | Setup checklist for administrators, worked out from the real data, only for modules that exist | U6 | After U1; grows with later modules | A2, U1, C3, C4, D1, E1 |
+| FR-UX-18 | Walk-through "See how it works": a pretend fault on screen only, nothing saved | U6 | After U1 | |
+| FR-UX-19 | Poster for A4: site address, three steps, English and Lithuanian, emergency numbers; a QR code only after the owner's yes | U6 | After U1 (needs the emergency numbers) | FR-UX-03, FR-UX-04 |
+| FR-UX-20 | Every empty list says what will appear there and what causes it | U0 | First, right after B5 | |
+| FR-UX-21 | Welcome cards at first sign-in, shown once, with a skip button, reachable from Help | U7 | After U2 | FR-UX-25 |
+| FR-UX-22 | "Who can see this" notes beside personal fields, taken from the rules the server enforces, with tests that note and rule agree | C1, then every module with personal fields | Start of Phase C | C1, C2, F1 |
+| FR-UX-23 | Plain words for every status with what happens next, using the report's real target time; stored values and routes unchanged | U0 | First, right after B5 | B3 (the status "assigned") |
+| FR-UX-24 | Students see "Dormitory office" where the screen says "Administrator" | U0 | First, right after B5 | |
+| FR-UX-25 | Help page behind "?" on every page: five SAMPLE questions per role and how to reach the office | U0 | First, right after B5 | FR-UX-03 |
+
+**U0. Plain words** (FR-UX-20, FR-UX-23, FR-UX-24, FR-UX-25)
+- [ ] Texts for empty lists.
+- [ ] Status words and "what happens next" as pure functions with unit tests; pages use them.
+- [ ] "Dormitory office" for residents.
+- [ ] Help page with SAMPLE questions per role.
+
+**U6. The owner's first day** (FR-UX-17, FR-UX-18, FR-UX-19)
+- [ ] Setup checklist worked out from the data.
+- [ ] Walk-through on screen only.
+- [ ] Poster page for printing.
+
+**U7. Welcome cards** (FR-UX-21)
+- [ ] Three cards at first sign-in; shown once.
+
+**What was found about Appwrite's own e-mails (2026-11-28, from Appwrite's
+documentation and the installed library; needed for FR-UX-16):**
+- A password recovery link is valid for 1 hour. So "First time here? Set
+  your password" is needed, as the owner expected.
+- On Appwrite Cloud the built-in mail service does not allow changing the
+  e-mail's text. The person receives Appwrite's standard password-reset
+  e-mail, in English, not an invitation written by the dormitory. A custom
+  mail server is offered only on a paid plan.
+- The link in the e-mail may only lead to a site address that is registered
+  as a platform in the Appwrite project.
+- The documentation read does not state a rate limit for the recovery
+  e-mail, nor a daily cap for a free project, nor the sender address. These
+  must be found by trying with a real mailbox.
+- The other built-in e-mail, the "magic link", creates an account for an
+  address that has none, so it must not be used here.
+- The test accounts and the owner's three accounts have no real mailbox, so
+  the e-mail itself can only be tried with a real address the owner gives.
 
 
 

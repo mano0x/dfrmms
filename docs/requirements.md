@@ -118,6 +118,23 @@ answers. Nothing here is built.
 
 
 
+### Add-on 2 of 2026-11-28: the first day
+
+| ID | Module (proposed) | Requirement | Status |
+|----|-------------------|-------------|--------|
+| FR-UX-16 | B7 | Invitation instead of a shared password: the administrator enters name, e-mail and role (for a student also the room); the person gets an e-mail link from Appwrite and sets their own password; "First time here? Set your password" sends a fresh link; the same answer whether or not the address exists; inviting an administrator asks for the inviter's password again and is logged | To build |
+| FR-UX-17 | U6 | Setup checklist "Set up your dormitory" with a progress bar until complete; each step says why it matters and links to its page; every tick is worked out from the real data, not stored; only steps whose modules exist are shown | To build |
+| FR-UX-18 | U6 | Walk-through "See how it works": a pretend fault from new to fixed, on screen only; nothing is saved and no demo accounts are created | To build |
+| FR-UX-19 | U6 | Poster page that prints well on A4: site address in big letters, three steps to report a fault, in English and Lithuanian, and the emergency numbers; a QR code only with the owner's yes | To build |
+| FR-UX-20 | U0 | Every empty list says what will appear there and what causes it | To build |
+| FR-UX-21 | U7 | Welcome cards at first sign-in: report a problem, follow it, confirm it is fixed; shown once, with a skip button, reachable again from Help | To build |
+| FR-UX-22 | C1 and later | "Who can see this" notes beside every personal field, taken from the same rules the server enforces; a test shows that note and rule agree | To build |
+| FR-UX-23 | U0 | Plain words for every status with what happens next, using the report's real target time; no invented durations; stored status values and routes unchanged | To build |
+| FR-UX-24 | U0 | Students see "Dormitory office" where the screen says "Administrator" | To build |
+| FR-UX-25 | U0 | Help page behind "?" on every page: five common questions for each role, marked SAMPLE, and how to reach the office | To build |
+
+
+
 ## Security requirements
 
 | ID | Requirement | State | Module | Note |
