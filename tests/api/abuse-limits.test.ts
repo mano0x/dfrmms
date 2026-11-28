@@ -34,7 +34,7 @@ const seedReport = async (studentId: string, hoursAgo: number) => {
   const id = ID.unique();
   await tablesDB.createRow({
     databaseId: DB, tableId: "fault_reports", rowId: id, permissions: [],
-    data: { title: "LIMIT-TEST seeded", category: "other", urgency: "normal", priority: "low", description: "Seeded by the limit test.", status: "closed", studentId, studentName: "Test", createdAt: at, updatedAt: at },
+    data: { title: "LIMIT-TEST seeded", category: "other", urgency: "normal", priority: "low", description: "Seeded by the limit test.", status: "closed", studentId, studentName: "Test", dormitory: "TEST", roomNumber: "TEST", locationType: "room", createdAt: at, updatedAt: at },
   });
   reports.push(id);
 };
@@ -59,12 +59,23 @@ const phonePhoto = () =>
     .jpeg()
     .toBuffer();
 
+/** Every report this file ever put in place or submitted, also in an earlier run that stopped half-way: they are found by their title. */
+const sweepLimitReports = async () => {
+  for (let round = 0; round < 10; round++) {
+    const { rows } = await tablesDB.listRows({ databaseId: DB, tableId: "fault_reports", queries: [Query.equal("studentId", ["test-student3", "test-student4"]), Query.startsWith("title", "LIMIT-TEST"), Query.limit(100)] });
+    if (!rows.length) return;
+    for (const r of rows) await removeReport(r.$id);
+  }
+};
+
 beforeAll(async () => {
+  await sweepLimitReports(); // an earlier run may have stopped before its own clean-up
   [student3, student4, tech1, admin] = await Promise.all([signIn("student3", "student"), signIn("student4", "student"), signIn("tech1", "technician"), signIn("admin", "admin")]);
 });
 afterAll(async () => {
   await persistently(async () => {
     for (const id of reports) await removeReport(id);
+    await sweepLimitReports();
     for (const f of files) await storage.deleteFile(f).catch(() => {});
     // Anything a test account uploaded during this file that was not noted above.
     for (const bucketId of [FAULT_BUCKET, FREE_BUCKET]) {

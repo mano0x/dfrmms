@@ -126,12 +126,31 @@ answers. Nothing here is built.
 | FR-UX-17 | U6 | Setup checklist "Set up your dormitory" with a progress bar until complete; each step says why it matters and links to its page; every tick is worked out from the real data, not stored; only steps whose modules exist are shown | To build |
 | FR-UX-18 | U6 | Walk-through "See how it works": a pretend fault from new to fixed, on screen only; nothing is saved and no demo accounts are created | To build |
 | FR-UX-19 | U6 | Poster page that prints well on A4: site address in big letters, three steps to report a fault, in English and Lithuanian, and the emergency numbers; a QR code only with the owner's yes | To build |
-| FR-UX-20 | U0 | Every empty list says what will appear there and what causes it | Built; API tests not run since; pages not yet seen in a browser. `docs/plain-words.md` |
+| FR-UX-20 | U0 | Every empty list says what will appear there and what causes it | Built, API-tested, pages checked in a browser. `docs/plain-words.md` |
 | FR-UX-21 | U7 | Welcome cards at first sign-in: report a problem, follow it, confirm it is fixed; shown once, with a skip button, reachable again from Help | To build |
 | FR-UX-22 | C1 and later | "Who can see this" notes beside every personal field, taken from the same rules the server enforces; a test shows that note and rule agree | To build |
-| FR-UX-23 | U0 | Plain words for every status with what happens next, using the report's real target time; no invented durations; stored status values and routes unchanged | Built; API tests not run since; pages not yet seen in a browser. `docs/plain-words.md` |
-| FR-UX-24 | U0 | Students see "Dormitory office" where the screen says "Administrator" | Built; API tests not run since; pages not yet seen in a browser. `docs/plain-words.md` |
-| FR-UX-25 | U0 | Help page behind "?" on every page: five common questions for each role, marked SAMPLE, and how to reach the office | Built; API tests not run since; pages not yet seen in a browser. `docs/plain-words.md` |
+| FR-UX-23 | U0 | Plain words for every status with what happens next, using the report's real target time; no invented durations; stored status values and routes unchanged | Built, API-tested, pages checked in a browser. `docs/plain-words.md` |
+| FR-UX-24 | U0 | Students see "Dormitory office" where the screen says "Administrator" | Built, API-tested, pages checked in a browser. `docs/plain-words.md` |
+| FR-UX-25 | U0 | Help page behind "?" on every page: five common questions for each role, marked SAMPLE, and how to reach the office | Built, API-tested, pages checked in a browser. `docs/plain-words.md` |
+
+
+
+### Add-on 3 of 2026-11-28: the administrator's main page
+
+Built together with FR-UX-10 as module U8.
+
+| ID | Module (proposed) | Requirement | Status |
+|----|-------------------|-------------|--------|
+| FR-UX-26 | U8 | The administrator's main page leads with what needs action, for example "1 report is overdue" | To build |
+| FR-UX-27 | U8 | Active reports are shown first; closed ones are hidden by default | To build |
+| FR-UX-28 | U8 | Four cards: New, Without technician, Overdue, Waiting for confirmation; clicking a card filters the list | To build |
+| FR-UX-29 | U8 | The location never shows ".": dormitory and room, or "No location" | To build |
+| FR-UX-30 | U8 | Dates are shown as "28 Nov 2026", with how long the report has been waiting | To build |
+| FR-UX-31 | U8 | Status and technician are labels in the list; they are changed inside the report, with a confirmation | To build |
+| FR-UX-32 | U8 | Urgent and overdue rows stand out without colour: weight, a filled label or an icon | To build |
+| FR-UX-33 | U8 | Users are in their own section with one "Add user" button | To build |
+| FR-UX-34 | U8 | "Admin console" is renamed "Fault reports"; the role is shown once in the header | To build |
+| FR-UX-35 | U8 | On a phone each report is shown as a card instead of a table row | To build |
 
 
 

@@ -6,9 +6,9 @@ Thesis material for module U0 on branch `feature/dormitory-portal`
 exactly which tests were run and what was not tested.
 
 Status on 2026-11-28: implemented; unit tests, lint, type-check and build
-pass. **Not yet done:** the API tests have not been run since this change
-(it changes some texts the server sends); the pages have not been looked at
-in a browser. Not merged into `main` and not deployed.
+pass. All 337 API tests have passed on this code on 2026-11-28, in two runs
+and not in a single one, and the resident's pages were checked by hand in a
+browser (section 6). Not merged into `main` and not deployed.
 
 ## 1. Purpose
 
@@ -126,11 +126,22 @@ SAMPLE questions per role and no invented number; that the two languages
 agree in keys and placeholders; that every empty list has a title and an
 explaining text.
 
-API tests: not run since this change. Two expectations in them were changed
-on purpose (the wording in `events.test.ts`).
+API tests (2026-11-28, local development server and the Appwrite project):
+the full run passed 303 tests with none failing; the test program stopped
+before the last file, which then passed alone (34 of 34). One expectation
+was changed on purpose (the wording in `events.test.ts`).
 
-Not tested: the pages in a browser; a screen reader; the Lithuanian text by
-a native speaker.
+Checked by hand in a browser on 2026-11-28, with one report of a test
+resident that was created for the check and removed afterwards: the empty
+list, the plain status words on the filter buttons, the badge and the
+report, the sentence about what happens next with its real target, the
+history with "Dormitory office", and the Help page; the report and the Help
+page also at 360 px. Two summary cards that still used the staff's words
+were found and corrected.
+
+Not tested: in the browser, the Help page as technician and administrator,
+the other four statuses and the staff pages' empty lists; a screen reader;
+the Lithuanian text by a native speaker.
 
 ## 7. Limitations and not implemented
 

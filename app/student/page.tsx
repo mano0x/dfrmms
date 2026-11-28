@@ -248,8 +248,8 @@ export default function StudentDashboard() {
         items={[
           { label: "My reports", value: stats.total, tone: "solid", icon: <Icon.Clipboard width={16} height={16} /> },
           { label: "Not started", value: stats.open, tone: "plain", icon: <Icon.Alert width={16} height={16} /> },
-          { label: "In progress", value: stats.inProgress, tone: "plain", icon: <Icon.Clock width={16} height={16} /> },
-          { label: "Resolved", value: stats.resolved, tone: "plain", icon: <Icon.Check width={16} height={16} /> },
+          { label: statusWord("in-progress", "student"), value: stats.inProgress, tone: "plain", icon: <Icon.Clock width={16} height={16} /> },
+          { label: "Repaired", value: stats.resolved, tone: "plain", icon: <Icon.Check width={16} height={16} /> },
         ]}
       />
 
