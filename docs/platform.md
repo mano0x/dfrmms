@@ -263,6 +263,10 @@ The pages ask "who is signed in?" once more when they get the 503, before
 showing the sign-in page. Signing out goes ahead even when the session
 cannot be checked.
 
+The full API run after this change passed completely (322 of 322 on
+2026-11-28); no lookup failed during it, so it shows that nothing was
+broken, not that the earlier answers are cured.
+
 Not tested: the 503 through the running application. It needs the identity
 service to fail, which the tests cannot cause; the rule is unit-tested with
 a lookup that fails on purpose. Whether this was the cause of the two "not
