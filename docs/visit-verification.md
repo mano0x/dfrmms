@@ -6,8 +6,8 @@ tests were run and what was not tested.
 
 Status on 2026-11-28: implemented; unit tests, lint, type-check and build
 pass. All 303 API tests of the project have passed on this code on
-2026-11-28, in two runs and not in a single one (section 9). The pages have
-not been looked at in a browser. Not merged into `main` and not deployed.
+2026-11-28, in two runs and not in a single one (section 9). The pages were
+checked by hand in a browser on the same day. Not merged into `main` and not deployed.
 
 ## 1. Purpose
 
@@ -193,8 +193,18 @@ module, and one request of a signed-in test resident was answered "not
 signed in", which made the ten tests after it fail too. With the one test
 corrected, that file alone: 24 of 24.
 
-Not tested: the pages in a browser; a screen reader; two guesses arriving at
-the same moment (the design is described in section 6, no test forces it).
+Checked by hand in a browser on 2026-11-28, with two reports of a test
+resident that were created for the check and removed afterwards: the entry
+question on the report form; the resident's code box, also at 360 px; a
+wrong and a right code on the technician's card, by keyboard at 360 px;
+entry in absence; the administrator's emergency authorisation; and what
+the resident sees and is told afterwards.
+
+Not tested: in the browser, entering on the emergency authorisation, "no
+access", a blocked code, the hourly limit and the edit form (the API tests
+cover these on the server, except the edit form); a screen reader; two
+guesses arriving at the same moment (the design is described in section 6,
+no test forces it).
 
 ## 10. Limitations and not implemented
 
